@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeSathi v2.0 | Developer Toolkit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme">
+
+    <!-- Background Animation -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="container nav-content">
+            <div class="brand">
+                <i class="fa-solid fa-terminal"></i>
+                <span>CodeSathi <span style="font-weight:300; opacity:0.7;">v2.0</span></span>
+            </div>
+            <div class="nav-actions">
+                <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme">
+                    <i class="fa-solid fa-sun"></i>
+                </button>
+                <a href="https://github.com" target="_blank" class="icon-btn" aria-label="GitHub">
+                    <i class="fa-brands fa-github"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero & Search -->
+    <header class="hero">
+        <div class="container">
+            <h1>Developer Utilities</h1>
+            <p>Secure, fast, and client-side tools for your daily workflow.</p>
+            
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="tool-search" placeholder="Search tools (e.g., json, regex, color)..." autocomplete="off">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="tools-grid" id="tools-grid">
+            <!-- Tools will be injected here or exist statically -->
+            
+            <!-- 1. Error Translator -->
+            <article class="tool-card" data-tags="error debug fix">
+                <div class="card-header">
+                    <div class="icon-box"><i class="fa-solid fa-bug"></i></div>
+                    <div>
+                        <h3>Error Translator</h3>
+                        <span class="card-tag">Debugging</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <textarea id="err-input" rows="3" placeholder="Paste error message..."></textarea>
+                    <button class="btn-primary" onclick="Tools.ErrorTranslator.translate()">Explain</button>
+                    <div class="output-area">
+                        <div class="output-content" id="err-output">Result...</div>
+                        <button class="copy-btn" onclick="Utils.copy('err-output')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 2. JSON Formatter -->
+            <article class="tool-card" data-tags="json format validate">
+                <div class="card-header">
+                    <div class="icon-box" style="color: #eab308;"><i class="fa-solid fa-brackets-curly"></i></div>
+                    <div>
+                        <h3>JSON Formatter</h3>
+                        <span class="card-tag">Data</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <textarea id="json-input" rows="4" placeholder='{"key":"value"}'></textarea>
+                    <button class="btn-primary" style="background: linear-gradient(135deg, #eab308, #ca8a04);" onclick="Tools.JSONFormatter.format()">Beautify</button>
+                    <div class="output-area">
+                        <div class="output-content" id="json-output"><pre></pre></div>
+                        <button class="copy-btn" onclick="Utils.copy('json-output')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 3. UUID Generator -->
+            <article class="tool-card" data-tags="uuid id generate">
+                <div class="card-header">
+                    <div class="icon-box" style="color: #a855f7;"><i class="fa-solid fa-fingerprint"></i></div>
+                    <div>
+                        <h3>UUID Generator</h3>
+                        <span class="card-tag">Generator</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <p style="color:var(--text-muted); margin-bottom:15px;">Generate v4 UUIDs instantly.</p>
+                    <button class="btn-primary" style="background: linear-gradient(135deg, #a855f7, #7c3aed);" onclick="Tools.UUID.generate()">Generate ID</button>
+                    <div class="output-area">
+                        <div class="output-content" id="uuid-output">Click to generate...</div>
+                        <button class="copy-btn" onclick="Utils.copy('uuid-output')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 4. Color Converter -->
+            <article class="tool-card" data-tags="color hex rgb css">
+                <div class="card-header">
+                    <div class="icon-box" style="color: #22d3ee;"><i class="fa-solid fa-palette"></i></div>
+                    <div>
+                        <h3>Color Converter</h3>
+                        <span class="card-tag">Design</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <div class="color-preview" id="color-preview"></div>
+                    <div class="input-group">
+                        <label>HEX</label>
+                        <input type="text" id="hex-input" value="#38bdf8" maxlength="7">
+                    </div>
+                    <button class="btn-primary" style="background: linear-gradient(135deg, #22d3ee, #06b6d4);" onclick="Tools.ColorConverter.convert()">Convert</button>
+                    <div class="output-area">
+                        <div class="output-content" id="color-output">rgb(56, 189, 248)</div>
+                        <button class="copy-btn" onclick="Utils.copy('color-output')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 5. ELI5 Explainer -->
+            <article class="tool-card" data-tags="explain learn eli5 dictionary">
+                <div class="card-header">
+                    <div class="icon-box" style="color: #34d399;"><i class="fa-solid fa-shapes"></i></div>
+                    <div>
+                        <h3>Explain Like I'm 5</h3>
+                        <span class="card-tag">Learning</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <input type="text" id="eli5-input" placeholder="Enter term (e.g. API, DOM)...">
+                    <button class="btn-primary" style="background: linear-gradient(135deg, #34d399, #059669);" onclick="Tools.ELI5.explain()">Explain</button>
+                    <div class="output-area">
+                        <div class="output-content" id="eli5-output">Waiting for input...</div>
+                        <button class="copy-btn" onclick="Utils.copy('eli5-output')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 6. Roast Generator -->
+            <article class="tool-card" data-tags="roast fun meme">
+                <div class="card-header">
+                    <div class="icon-box" style="color: #f43f5e;"><i class="fa-solid fa-fire"></i></div>
+                    <div>
+                        <h3>Roast My Code</h3>
+                        <span class="card-tag">Fun</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <p style="color:var(--text-muted); margin-bottom:15px;">Get a reality check on your code.</p>
+                    <button class="btn-primary" style="background: linear-gradient(135deg, #f43f5e, #e11d48);" onclick="Tools.Roast.generate()">Roast Me</button>
+                    <div class="output-area">
+                        <div class="output-content" id="roast-output">...</div>
+                        <button class="copy-btn" onclick="Utils.copy('roast-output')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+            </article>
+
+             <!-- 7. Base64 Encoder -->
+             <article class="tool-card" data-tags="base64 encode decode string">
+                <div class="card-header">
+                    <div class="icon-box" style="color: #fb923c;"><i class="fa-solid fa-code"></i></div>
+                    <div>
+                        <h3>Base64 Tool</h3>
+                        <span class="card-tag">Encoding</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <textarea id="b64-input" rows="2" placeholder="Enter text..."></textarea>
+                    <div class="row" style="gap:10px; margin-bottom:15px;">
+                        <button class="btn-primary" style="flex:1; background: #fb923c;" onclick="Tools.Base64.encode()">Encode</button>
+                        <button class="btn-primary" style="flex:1; background: #ea580c;" onclick="Tools.Base64.decode()">Decode</button>
+                    </div>
+                    <div class="output-area">
+                        <div class="output-content" id="b64-output">Result...</div>
+                        <button class="copy-btn" onclick="Utils.copy('b64-output')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 8. Password Generator -->
+            <article class="tool-card" data-tags="password security generator">
+                <div class="card-header">
+                    <div class="icon-box" style="color: #818cf8;"><i class="fa-solid fa-key"></i></div>
+                    <div>
+                        <h3>Password Gen</h3>
+                        <span class="card-tag">Security</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <label>Length: <span id="pwd-len-val">12</span></label>
+                        <input type="range" id="pwd-length" min="6" max="32" value="12" oninput="document.getElementById('pwd-len-val').innerText = this.value">
+                    </div>
+                    <div class="row" style="margin-bottom:15px;">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem;">
+                            <input type="checkbox" id="pwd-symbols" checked> Symbols
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem;">
+                            <input type="checkbox" id="pwd-numbers" checked> Numbers
+                        </label>
+                    </div>
+                    <button class="btn-primary" style="background: linear-gradient(135deg, #818cf8, #6366f1);" onclick="Tools.Password.generate()">Generate</button>
+                    <div class="output-area">
+                        <div class="output-content" id="pwd-output" style="font-family: monospace; letter-spacing: 1px;">...</div>
+                        <button class="copy-btn" onclick="Utils.copy('pwd-output')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 9. Regex Tester -->
+            <article class="tool-card" data-tags="regex test pattern match">
+                <div class="card-header">
+                    <div class="icon-box" style="color: #f472b6;"><i class="fa-solid fa-asterisk"></i></div>
+                    <div>
+                        <h3>Regex Tester</h3>
+                        <span class="card-tag">Testing</span>
+                    </div>
+                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
+                </div>
+                <div class="card-body">
+                    <input type="text" id="regex-pattern" placeholder="Pattern (e.g. ^[a-z]+$)">
+                    <input type="text" id="regex-flags" placeholder="Flags (e.g. gi)" style="margin-top:10px;">
+                    <textarea id="regex-test-string" rows="2" placeholder="Test string here..." style="margin-top:10px;"></textarea>
+                    <button class="btn-primary" style="background: linear-gradient(135deg, #f472b6, #db2777);" onclick="Tools.Regex.test()">Test</button>
+                    <div class="output-area">
+                        <div class="output-content" id="regex-output">Matches: 0</div>
+                    </div>
+                </div>
+            </article>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>CodeSathi v2.0 • Built with ❤️ • <a href="https://github.com/TejUzumaki" target="_blank">GitHub</a></p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

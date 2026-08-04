@@ -2,269 +2,648 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeSathi v2.0 | Developer Toolkit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CodeSathi // Tactical Dev Environment</title>
+    
+    <!-- CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+    <style>
+        :root {
+            --bg-black: #000000;
+            --bg-panel: #0a0a0a;
+            --bg-editor: #050505;
+            --border-grey: #1a1a1a;
+            --border-light: #333333;
+            --text-white: #ffffff;
+            --text-muted: #666666;
+            --accent-orange: #ff6e40;
+            --accent-dim: rgba(255, 110, 64, 0.15);
+            --danger-red: #ff4d4d;
+            --success-green: #4caf50;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        html, body { height: 100%; overflow: hidden; }
+
+        body {
+            font-family: var(--font-mono);
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Boot Screen */
+        #boot-screen {
+            position: fixed; inset: 0; background: var(--bg-black); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        #boot-screen::before {
+            content: ''; position: absolute; inset: 0; 
+            background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px);
+            pointer-events: none;
+        }
+        .boot-text { color: var(--accent-orange); font-size: 0.9rem; letter-spacing: 3px; margin-bottom: 15px; text-transform: uppercase; }
+        .boot-loader { width: 220px; height: 2px; background: var(--border-light); position: relative; overflow: hidden; clip-path: polygon(0 0, 100% 0, 95% 100%, 0 100%); }
+        .boot-loader::after { content: ''; position: absolute; top: 0; left: 0; width: 30%; height: 100%; background: var(--accent-orange); }
+
+        /* Layout */
+        #app-container { display: none; flex-direction: column; height: 100vh; }
+        
+        /* Nav */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 20px; border-bottom: 1px solid var(--border-grey);
+            background: var(--bg-panel); z-index: 10; flex-shrink: 0;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; }
+        .brand span { color: var(--accent-orange); }
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        
+        .nav-btn {
+            background: transparent; border: 1px solid var(--border-light); color: var(--text-white);
+            padding: 8px 12px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase;
+            letter-spacing: 1px; font-size: 0.75rem; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+        }
+        .nav-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .nav-btn.active { background: var(--accent-orange); color: var(--bg-black); border-color: var(--accent-orange); }
+        .nav-btn.danger { border-color: var(--danger-red); color: var(--danger-red); }
+
+        .status-pill { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        .status-dot { width: 8px; height: 8px; background: var(--text-muted); border-radius: 50%; }
+        .status-dot.online { background: var(--success-green); box-shadow: 0 0 8px var(--success-green); }
+        .status-dot.connecting { background: var(--accent-orange); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* Main Area */
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        
+        /* Editor Area */
+        #editor-wrapper { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); }
+        .editor-header { padding: 8px 20px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; background: var(--bg-panel); }
+        .file-info { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+        .file-dot { width: 6px; height: 6px; background: var(--accent-orange); }
+        
+        .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; }
+        .CodeMirror-gutters { background: var(--bg-panel) !important; border-right: 1px solid var(--border-grey) !important; }
+        .CodeMirror-linenumber { color: var(--text-muted) !important; }
+        .CodeMirror-cursor { border-left: 2px solid var(--accent-orange) !important; }
+        .CodeMirror-selected { background: rgba(255, 110, 64, 0.2) !important; }
+        .CodeMirror-line { padding: 0 8px !important; }
+        
+        /* Remote Cursor */
+        .remote-cursor { position: absolute; width: 2px; height: 20px; background: var(--accent-orange); z-index: 5; pointer-events: none; transition: top 0.1s, left 0.1s; }
+        .remote-cursor::after { content: attr(data-name); position: absolute; top: -18px; left: -2px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
+
+        /* Mouse Tracker */
+        .remote-mouse { position: fixed; width: 20px; height: 20px; pointer-events: none; z-index: 9998; transition: transform 0.05s linear; }
+        .remote-mouse svg { width: 100%; height: 100%; fill: var(--accent-orange); }
+        .remote-mouse::after { content: attr(data-name); position: absolute; top: 15px; left: 15px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
+
+        /* Extension Panel */
+        #ext-panel {
+            position: absolute; top: 0; right: -280px; bottom: 0; width: 280px; 
+            background: var(--bg-panel); border-left: 1px solid var(--border-grey); 
+            display: flex; flex-direction: column; z-index: 20;
+        }
+        .ext-header { padding: 12px 15px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; }
+        .ext-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .ext-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; }
+        .ext-close:hover { color: var(--accent-orange); }
+        .ext-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .ext-item { padding: 12px; border: 1px solid var(--border-grey); margin-bottom: 8px; cursor: pointer; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+        .ext-item:hover { border-color: var(--accent-orange); background: var(--accent-dim); }
+        .ext-item h4 { font-size: 0.8rem; margin-bottom: 4px; color: var(--text-white); }
+        .ext-item p { font-size: 0.7rem; color: var(--text-muted); }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
+            z-index: 100; display: none; justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            width: 100%; max-width: 500px; background: var(--bg-panel); border: 1px solid var(--border-light);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+        }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-orange); }
+        .modal-body { padding: 20px; }
+        .modal-body p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.5; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .input-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .modal-input { width: 100%; background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 12px; font-family: var(--font-mono); font-size: 0.9rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+        .modal-input:focus { border-color: var(--accent-orange); }
+        
+        .btn { background: transparent; color: var(--text-white); border: 1px solid var(--border-light); padding: 12px 20px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+        .btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .btn-primary { background: var(--accent-orange); color: var(--bg-black); border: none; font-weight: 700; }
+        .btn-primary:hover { background: #ff8a5c; color: var(--bg-black); }
+        .btn-danger { background: var(--danger-red); color: var(--bg-black); border: none; font-weight: 700; }
+        .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+
+        /* Toast */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--bg-panel); border-left: 3px solid var(--accent-orange); padding: 12px 20px; color: var(--text-white); font-size: 0.8rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); min-width: 200px; }
+        .toast.error { border-left-color: var(--danger-red); }
+        .toast.success { border-left-color: var(--success-green); }
+
+        /* Audio Call Pulsing Avatar */
+        .call-avatar { width: 80px; height: 80px; border: 2px solid var(--accent-orange); margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--accent-orange); position: relative; }
+        .call-avatar::before, .call-avatar::after { content: ''; position: absolute; inset: -5px; border: 1px solid var(--accent-orange); animation: ripple 1.5s infinite; }
+        .call-avatar::after { animation-delay: 0.5s; }
+        @keyframes ripple { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+        .call-timer { text-align: center; font-size: 0.9rem; margin-top: 10px; color: var(--success-green); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-black); }
+        ::-webkit-scrollbar-thumb { background: var(--border-light); }
+    </style>
 </head>
-<body class="dark-theme">
+<body>
 
-    <!-- Background Animation -->
-    <div class="bg-orb orb-1"></div>
-    <div class="bg-orb orb-2"></div>
-    <div class="bg-orb orb-3"></div>
+    <!-- Boot Screen -->
+    <div id="boot-screen">
+        <div class="boot-text">Initializing System</div>
+        <div class="boot-loader"></div>
+    </div>
 
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container"></div>
-
-    <!-- Navigation -->
-    <nav>
-        <div class="container nav-content">
+    <!-- Main App -->
+    <div id="app-container">
+        <nav>
             <div class="brand">
-                <i class="fa-solid fa-terminal"></i>
-                <span>CodeSathi <span style="font-weight:300; opacity:0.7;">v2.0</span></span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-orange);"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                CodeSathi <span>// COLLAB</span>
             </div>
             <div class="nav-actions">
-                <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme">
-                    <i class="fa-solid fa-sun"></i>
+                <div class="status-pill">
+                    <div class="status-dot" id="net-status"></div>
+                    <span id="net-text">OFFLINE</span>
+                </div>
+                <button class="nav-btn" id="btn-connect">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    CONNECT
                 </button>
-                <a href="https://github.com" target="_blank" class="icon-btn" aria-label="GitHub">
-                    <i class="fa-brands fa-github"></i>
-                </a>
+                <button class="nav-btn" id="btn-call" style="display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    VOICE
+                </button>
+                <button class="nav-btn" id="btn-ext">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    TOOLS
+                </button>
+            </div>
+        </nav>
+
+        <main>
+            <div id="editor-wrapper">
+                <div class="editor-header">
+                    <div class="file-info">
+                        <div class="file-dot"></div>
+                        <span id="filename">untitled.js</span>
+                    </div>
+                    <div class="file-info" id="save-status">SAVED</div>
+                </div>
+                <textarea id="code-editor"></textarea>
+                <div class="remote-cursor" id="remote-cursor" style="display:none;" data-name="PEER"></div>
+            </div>
+
+            <!-- Extension Panel -->
+            <div id="ext-panel">
+                <div class="ext-header">
+                    <div class="ext-title">Extensions</div>
+                    <button class="ext-close" id="ext-close">&times;</button>
+                </div>
+                <div class="ext-list" id="ext-list"></div>
+            </div>
+        </main>
+
+        <!-- Remote Mouse Tracker -->
+        <div class="remote-mouse" id="remote-mouse" style="display:none;" data-name="PEER">
+            <svg viewBox="0 0 24 24"><path d="M5.5 3.21V20.79c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36z"/></svg>
+        </div>
+    </div>
+
+    <!-- Connect Modal -->
+    <div class="modal-overlay" id="modal-connect">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Establish P2P Link</h2>
+                <button class="ext-close" onclick="App.closeModal('modal-connect')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Initiate a tactical WebRTC data channel. Share your ID to receive, or input a peer ID to connect.</p>
+                <div class="input-group">
+                    <label class="input-label">Your Identification ID</label>
+                    <input type="text" id="my-peer-id" class="modal-input" readonly>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Target Peer ID</label>
+                    <input type="text" id="target-peer-id" class="modal-input" placeholder="ENTER CALLSIGN...">
+                </div>
+                <div class="btn-row">
+                    <button class="btn" onclick="App.closeModal('modal-connect')">Cancel</button>
+                    <button class="btn btn-primary" onclick="P2P.connect()">Link</button>
+                </div>
             </div>
         </div>
-    </nav>
+    </div>
 
-    <!-- Hero & Search -->
-    <header class="hero">
-        <div class="container">
-            <h1>Developer Utilities</h1>
-            <p>Secure, fast, and client-side tools for your daily workflow.</p>
-            
-            <div class="search-wrapper">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="tool-search" placeholder="Search tools (e.g., json, regex, color)..." autocomplete="off">
+    <!-- Incoming Call Modal -->
+    <div class="modal-overlay" id="modal-call">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Incoming Voice Channel</h2>
+            </div>
+            <div class="modal-body" style="text-align:center;">
+                <div class="call-avatar">PEER</div>
+                <p>Incoming transmission request.</p>
+                <div class="btn-row" style="justify-content:center;">
+                    <button class="btn btn-danger" onclick="P2P.endCall(true)">Reject</button>
+                    <button class="btn btn-primary" onclick="P2P.acceptCall()">Accept</button>
+                </div>
             </div>
         </div>
-    </header>
+    </div>
 
-    <!-- Main Content -->
-    <main class="container">
-        <div class="tools-grid" id="tools-grid">
-            <!-- Tools will be injected here or exist statically -->
+    <!-- Active Call Modal -->
+    <div class="modal-overlay" id="modal-active-call" style="background:rgba(0,0,0,0.95);">
+        <div class="modal-content" style="background:transparent; border:none;">
+            <div style="text-align:center;">
+                <div class="call-avatar">LIVE</div>
+                <div class="call-timer" id="call-timer">00:00</div>
+                <div style="margin-top:20px;">
+                    <button class="btn btn-danger" onclick="P2P.endCall()">Disconnect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Conflict Modal -->
+    <div class="modal-overlay" id="modal-sync">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Data Sync Conflict</h2>
+            </div>
+            <div class="modal-body">
+                <p>Your peer has a different local version of the code. Do you want to apply their changes or keep yours?</p>
+                <div class="btn-row">
+                    <button class="btn" onclick="App.keepLocal()">Keep Mine</button>
+                    <button class="btn btn-primary" onclick="App.takeRemote()">Take Theirs</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script>
+        // --- Utility & Global State ---
+        const Utils = {
+            toast: (message, type = 'success') => {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerText = message;
+                container.appendChild(toast);
+                gsap.fromTo(toast, {x: 100, opacity: 0}, {x: 0, opacity: 1, duration: 0.3});
+                setTimeout(() => {
+                    gsap.to(toast, {x: 100, opacity: 0, duration: 0.3, onComplete: () => toast.remove()});
+                }, 3000);
+            }
+        };
+
+        const App = {
+            editor: null,
+            isApplyingRemote: false,
             
-            <!-- 1. Error Translator -->
-            <article class="tool-card" data-tags="error debug fix">
-                <div class="card-header">
-                    <div class="icon-box"><i class="fa-solid fa-bug"></i></div>
-                    <div>
-                        <h3>Error Translator</h3>
-                        <span class="card-tag">Debugging</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <textarea id="err-input" rows="3" placeholder="Paste error message..."></textarea>
-                    <button class="btn-primary" onclick="Tools.ErrorTranslator.translate()">Explain</button>
-                    <div class="output-area">
-                        <div class="output-content" id="err-output">Result...</div>
-                        <button class="copy-btn" onclick="Utils.copy('err-output')"><i class="fa-regular fa-copy"></i></button>
-                    </div>
-                </div>
-            </article>
+            init: () => {
+                // Boot Sequence
+                gsap.to('#boot-loader::after', {width: '100%', duration: 1.5, ease: 'power2.inOut'});
+                setTimeout(() => {
+                    gsap.to('#boot-screen', {opacity: 0, duration: 0.5, onComplete: () => {
+                        document.getElementById('boot-screen').style.display = 'none';
+                        document.getElementById('app-container').style.display = 'flex';
+                        App.initEditor();
+                        App.initExtensions();
+                        P2P.init();
+                        App.bindEvents();
+                    }});
+                }, 1500);
+            },
 
-            <!-- 2. JSON Formatter -->
-            <article class="tool-card" data-tags="json format validate">
-                <div class="card-header">
-                    <div class="icon-box" style="color: #eab308;"><i class="fa-solid fa-brackets-curly"></i></div>
-                    <div>
-                        <h3>JSON Formatter</h3>
-                        <span class="card-tag">Data</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <textarea id="json-input" rows="4" placeholder='{"key":"value"}'></textarea>
-                    <button class="btn-primary" style="background: linear-gradient(135deg, #eab308, #ca8a04);" onclick="Tools.JSONFormatter.format()">Beautify</button>
-                    <div class="output-area">
-                        <div class="output-content" id="json-output"><pre></pre></div>
-                        <button class="copy-btn" onclick="Utils.copy('json-output')"><i class="fa-regular fa-copy"></i></button>
-                    </div>
-                </div>
-            </article>
+            initEditor: () => {
+                const savedCode = localStorage.getItem('codesathi_code') || '// Start coding...\n';
+                document.getElementById('code-editor').value = savedCode;
+                
+                App.editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                    mode: 'javascript',
+                    lineNumbers: true,
+                    theme: 'default',
+                    autoCloseTags: true,
+                    autoCloseBrackets: true,
+                    tabSize: 2,
+                    lineWrapping: true
+                });
 
-            <!-- 3. UUID Generator -->
-            <article class="tool-card" data-tags="uuid id generate">
-                <div class="card-header">
-                    <div class="icon-box" style="color: #a855f7;"><i class="fa-solid fa-fingerprint"></i></div>
-                    <div>
-                        <h3>UUID Generator</h3>
-                        <span class="card-tag">Generator</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <p style="color:var(--text-muted); margin-bottom:15px;">Generate v4 UUIDs instantly.</p>
-                    <button class="btn-primary" style="background: linear-gradient(135deg, #a855f7, #7c3aed);" onclick="Tools.UUID.generate()">Generate ID</button>
-                    <div class="output-area">
-                        <div class="output-content" id="uuid-output">Click to generate...</div>
-                        <button class="copy-btn" onclick="Utils.copy('uuid-output')"><i class="fa-regular fa-copy"></i></button>
-                    </div>
-                </div>
-            </article>
+                // Local Save & Sync
+                let saveTimer;
+                App.editor.on('change', (instance, change) => {
+                    if (App.isApplyingRemote) return;
+                    
+                    clearTimeout(saveTimer);
+                    document.getElementById('save-status').innerText = 'TYPING...';
+                    saveTimer = setTimeout(() => {
+                        localStorage.setItem('codesathi_code', instance.getValue());
+                        document.getElementById('save-status').innerText = 'SAVED LOCALLY';
+                    }, 800);
 
-            <!-- 4. Color Converter -->
-            <article class="tool-card" data-tags="color hex rgb css">
-                <div class="card-header">
-                    <div class="icon-box" style="color: #22d3ee;"><i class="fa-solid fa-palette"></i></div>
-                    <div>
-                        <h3>Color Converter</h3>
-                        <span class="card-tag">Design</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <div class="color-preview" id="color-preview"></div>
-                    <div class="input-group">
-                        <label>HEX</label>
-                        <input type="text" id="hex-input" value="#38bdf8" maxlength="7">
-                    </div>
-                    <button class="btn-primary" style="background: linear-gradient(135deg, #22d3ee, #06b6d4);" onclick="Tools.ColorConverter.convert()">Convert</button>
-                    <div class="output-area">
-                        <div class="output-content" id="color-output">rgb(56, 189, 248)</div>
-                        <button class="copy-btn" onclick="Utils.copy('color-output')"><i class="fa-regular fa-copy"></i></button>
-                    </div>
-                </div>
-            </article>
+                    // Send to peer
+                    if (P2P.conn && P2P.conn.open) {
+                        P2P.conn.send({ t: 'code', code: instance.getValue() });
+                    }
+                });
 
-            <!-- 5. ELI5 Explainer -->
-            <article class="tool-card" data-tags="explain learn eli5 dictionary">
-                <div class="card-header">
-                    <div class="icon-box" style="color: #34d399;"><i class="fa-solid fa-shapes"></i></div>
-                    <div>
-                        <h3>Explain Like I'm 5</h3>
-                        <span class="card-tag">Learning</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <input type="text" id="eli5-input" placeholder="Enter term (e.g. API, DOM)...">
-                    <button class="btn-primary" style="background: linear-gradient(135deg, #34d399, #059669);" onclick="Tools.ELI5.explain()">Explain</button>
-                    <div class="output-area">
-                        <div class="output-content" id="eli5-output">Waiting for input...</div>
-                        <button class="copy-btn" onclick="Utils.copy('eli5-output')"><i class="fa-regular fa-copy"></i></button>
-                    </div>
-                </div>
-            </article>
+                // Cursor tracking
+                App.editor.on('cursorActivity', (instance) => {
+                    if (App.isApplyingRemote) return;
+                    if (P2P.conn && P2P.conn.open) {
+                        const cursor = instance.getCursor();
+                        const coords = instance.charCoords(cursor, 'local');
+                        P2P.conn.send({ t: 'cursor', line: cursor.line, ch: cursor.ch });
+                    }
+                });
+            },
 
-            <!-- 6. Roast Generator -->
-            <article class="tool-card" data-tags="roast fun meme">
-                <div class="card-header">
-                    <div class="icon-box" style="color: #f43f5e;"><i class="fa-solid fa-fire"></i></div>
-                    <div>
-                        <h3>Roast My Code</h3>
-                        <span class="card-tag">Fun</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <p style="color:var(--text-muted); margin-bottom:15px;">Get a reality check on your code.</p>
-                    <button class="btn-primary" style="background: linear-gradient(135deg, #f43f5e, #e11d48);" onclick="Tools.Roast.generate()">Roast Me</button>
-                    <div class="output-area">
-                        <div class="output-content" id="roast-output">...</div>
-                        <button class="copy-btn" onclick="Utils.copy('roast-output')"><i class="fa-regular fa-copy"></i></button>
-                    </div>
-                </div>
-            </article>
+            initExtensions: () => {
+                const extensions = [
+                    { id: 'json', name: 'Format JSON', desc: 'Beautify selected JSON', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"></path><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"></path></svg>', action: App.extJson },
+                    { id: 'uuid', name: 'Insert UUID', desc: 'Generate v4 UUID at cursor', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>', action: App.extUuid },
+                    { id: 'b64', name: 'Base64 Encode', desc: 'Encode selected text', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>', action: App.extB64 }
+                ];
 
-             <!-- 7. Base64 Encoder -->
-             <article class="tool-card" data-tags="base64 encode decode string">
-                <div class="card-header">
-                    <div class="icon-box" style="color: #fb923c;"><i class="fa-solid fa-code"></i></div>
-                    <div>
-                        <h3>Base64 Tool</h3>
-                        <span class="card-tag">Encoding</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <textarea id="b64-input" rows="2" placeholder="Enter text..."></textarea>
-                    <div class="row" style="gap:10px; margin-bottom:15px;">
-                        <button class="btn-primary" style="flex:1; background: #fb923c;" onclick="Tools.Base64.encode()">Encode</button>
-                        <button class="btn-primary" style="flex:1; background: #ea580c;" onclick="Tools.Base64.decode()">Decode</button>
-                    </div>
-                    <div class="output-area">
-                        <div class="output-content" id="b64-output">Result...</div>
-                        <button class="copy-btn" onclick="Utils.copy('b64-output')"><i class="fa-regular fa-copy"></i></button>
-                    </div>
-                </div>
-            </article>
+                const list = document.getElementById('ext-list');
+                extensions.forEach(ext => {
+                    const div = document.createElement('div');
+                    div.className = 'ext-item';
+                    div.innerHTML = `<div style="display:flex; gap:10px; align-items:center;"><div style="color:var(--accent-orange);">${ext.icon}</div><div><h4>${ext.name}</h4><p>${ext.desc}</p></div></div>`;
+                    div.onclick = () => ext.action();
+                    list.appendChild(div);
+                });
+            },
 
-            <!-- 8. Password Generator -->
-            <article class="tool-card" data-tags="password security generator">
-                <div class="card-header">
-                    <div class="icon-box" style="color: #818cf8;"><i class="fa-solid fa-key"></i></div>
-                    <div>
-                        <h3>Password Gen</h3>
-                        <span class="card-tag">Security</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <div class="input-group">
-                        <label>Length: <span id="pwd-len-val">12</span></label>
-                        <input type="range" id="pwd-length" min="6" max="32" value="12" oninput="document.getElementById('pwd-len-val').innerText = this.value">
-                    </div>
-                    <div class="row" style="margin-bottom:15px;">
-                        <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem;">
-                            <input type="checkbox" id="pwd-symbols" checked> Symbols
-                        </label>
-                        <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem;">
-                            <input type="checkbox" id="pwd-numbers" checked> Numbers
-                        </label>
-                    </div>
-                    <button class="btn-primary" style="background: linear-gradient(135deg, #818cf8, #6366f1);" onclick="Tools.Password.generate()">Generate</button>
-                    <div class="output-area">
-                        <div class="output-content" id="pwd-output" style="font-family: monospace; letter-spacing: 1px;">...</div>
-                        <button class="copy-btn" onclick="Utils.copy('pwd-output')"><i class="fa-regular fa-copy"></i></button>
-                    </div>
-                </div>
-            </article>
+            bindEvents: () => {
+                document.getElementById('btn-connect').onclick = () => App.openModal('modal-connect');
+                document.getElementById('btn-ext').onclick = () => App.toggleExtPanel();
+                document.getElementById('ext-close').onclick = () => App.toggleExtPanel(false);
+                document.getElementById('btn-call').onclick = () => P2P.startCall();
 
-            <!-- 9. Regex Tester -->
-            <article class="tool-card" data-tags="regex test pattern match">
-                <div class="card-header">
-                    <div class="icon-box" style="color: #f472b6;"><i class="fa-solid fa-asterisk"></i></div>
-                    <div>
-                        <h3>Regex Tester</h3>
-                        <span class="card-tag">Testing</span>
-                    </div>
-                    <button class="fav-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-                </div>
-                <div class="card-body">
-                    <input type="text" id="regex-pattern" placeholder="Pattern (e.g. ^[a-z]+$)">
-                    <input type="text" id="regex-flags" placeholder="Flags (e.g. gi)" style="margin-top:10px;">
-                    <textarea id="regex-test-string" rows="2" placeholder="Test string here..." style="margin-top:10px;"></textarea>
-                    <button class="btn-primary" style="background: linear-gradient(135deg, #f472b6, #db2777);" onclick="Tools.Regex.test()">Test</button>
-                    <div class="output-area">
-                        <div class="output-content" id="regex-output">Matches: 0</div>
-                    </div>
-                </div>
-            </article>
+                // Mouse tracking
+                document.addEventListener('mousemove', (e) => {
+                    if (P2P.conn && P2P.conn.open) {
+                        P2P.conn.send({ t: 'mouse', x: e.clientX, y: e.clientY });
+                    }
+                });
+                document.addEventListener('touchmove', (e) => {
+                    if (P2P.conn && P2P.conn.open && e.touches[0]) {
+                        P2P.conn.send({ t: 'mouse', x: e.touches[0].clientX, y: e.touches[0].clientY });
+                    }
+                });
+            },
 
-        </div>
-    </main>
+            toggleExtPanel: (show = true) => {
+                if (show) gsap.to('#ext-panel', {right: 0, duration: 0.3});
+                else gsap.to('#ext-panel', {right: -280, duration: 0.3});
+            },
 
-    <footer>
-        <div class="container">
-            <p>CodeSathi v2.0 • Built with ❤️ • <a href="https://github.com/TejUzumaki" target="_blank">GitHub</a></p>
-        </div>
-    </footer>
+            openModal: (id) => document.getElementById(id).classList.add('active'),
+            closeModal: (id) => document.getElementById(id).classList.remove('active'),
 
-    <!-- Scripts -->
-    <script type="module" src="js/app.js"></script>
+            // Extension Actions
+            extJson: () => {
+                const text = App.editor.getSelection();
+                if (!text) return Utils.toast('Select JSON text first', 'error');
+                try {
+                    App.editor.replaceSelection(JSON.stringify(JSON.parse(text), null, 2));
+                    Utils.toast('JSON Formatted');
+                } catch (e) { Utils.toast('Invalid JSON', 'error'); }
+            },
+            extUuid: () => {
+                const uuid = crypto.randomUUID();
+                App.editor.replaceSelection(uuid);
+                Utils.toast('UUID Inserted');
+            },
+            extB64: () => {
+                const text = App.editor.getSelection();
+                if (!text) return Utils.toast('Select text first', 'error');
+                try { App.editor.replaceSelection(btoa(text)); Utils.toast('Encoded'); } 
+                catch (e) { Utils.toast('Invalid text', 'error'); }
+            },
+
+            // Sync Logic
+            handleSyncConflict: (remoteCode) => {
+                App.remoteCodeBuffer = remoteCode;
+                App.openModal('modal-sync');
+            },
+            keepLocal: () => {
+                App.closeModal('modal-sync');
+                if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'code', code: App.editor.getValue() });
+            },
+            takeRemote: () => {
+                App.closeModal('modal-sync');
+                App.isApplyingRemote = true;
+                App.editor.setValue(App.remoteCodeBuffer);
+                localStorage.setItem('codesathi_code', App.remoteCodeBuffer);
+                App.isApplyingRemote = false;
+            }
+        };
+
+        // --- P2P Networking ---
+        const P2P = {
+            peer: null,
+            conn: null,
+            call: null,
+            localStream: null,
+            myId: null,
+            callTimer: null,
+            callSeconds: 0,
+
+            init: () => {
+                P2P.myId = localStorage.getItem('codesathi_peer_id');
+                if (!P2P.myId) {
+                    P2P.myId = 'CS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+                    localStorage.setItem('codesathi_peer_id', P2P.myId);
+                }
+                document.getElementById('my-peer-id').value = P2P.myId;
+
+                P2P.peer = new Peer(P2P.myId, { debug: 0 });
+
+                P2P.peer.on('open', (id) => {
+                    document.getElementById('net-status').classList.remove('connecting');
+                    document.getElementById('net-status').classList.add('online');
+                    document.getElementById('net-text').innerText = 'ONLINE';
+                });
+
+                P2P.peer.on('connection', (dc) => {
+                    P2P.conn = dc;
+                    P2P.wireConnection();
+                });
+
+                P2P.peer.on('call', (incomingCall) => {
+                    P2P.call = incomingCall;
+                    App.openModal('modal-call');
+                });
+
+                P2P.peer.on('error', (err) => {
+                    console.error(err);
+                    Utils.toast('P2P Error: ' + err.type, 'error');
+                });
+            },
+
+            connect: () => {
+                const targetId = document.getElementById('target-peer-id').value.trim();
+                if (!targetId || !P2P.peer) return;
+                
+                document.getElementById('net-status').classList.add('connecting');
+                document.getElementById('net-text').innerText = 'LINKING...';
+                
+                P2P.conn = P2P.peer.connect(targetId, { reliable: true });
+                P2P.wireConnection();
+            },
+
+            wireConnection: () => {
+                P2P.conn.on('open', () => {
+                    App.closeModal('modal-connect');
+                    document.getElementById('net-status').classList.remove('connecting');
+                    document.getElementById('net-status').classList.add('online');
+                    document.getElementById('net-text').innerText = 'CONNECTED';
+                    document.getElementById('btn-call').style.display = 'flex';
+                    Utils.toast('Peer Linked', 'success');
+                    
+                    // Initial Sync Request
+                    P2P.conn.send({ t: 'sync_req', code: App.editor.getValue() });
+                });
+
+                P2P.conn.on('data', P2P.handleData);
+                
+                P2P.conn.on('close', () => {
+                    document.getElementById('net-status').classList.remove('online');
+                    document.getElementById('net-text').innerText = 'DISCONNECTED';
+                    document.getElementById('btn-call').style.display = 'none';
+                    document.getElementById('remote-cursor').style.display = 'none';
+                    document.getElementById('remote-mouse').style.display = 'none';
+                    Utils.toast('Peer Disconnected', 'error');
+                });
+            },
+
+            handleData: (d) => {
+                if (d.t === 'sync_req') {
+                    // Compare local vs remote
+                    if (App.editor.getValue() !== d.code) {
+                        App.handleSyncConflict(d.code);
+                    }
+                } else if (d.t === 'code') {
+                    App.isApplyingRemote = true;
+                    const cursor = App.editor.getCursor();
+                    App.editor.setValue(d.code);
+                    App.editor.setCursor(cursor);
+                    App.isApplyingRemote = false;
+                    localStorage.setItem('codesathi_code', d.code);
+                } else if (d.t === 'cursor') {
+                    const cursorEl = document.getElementById('remote-cursor');
+                    cursorEl.style.display = 'block';
+                    const coords = App.editor.charCoords({line: d.line, ch: d.ch}, 'local');
+                    // CodeMirror local coords need to be adjusted by the wrapper offset
+                    const wrapper = document.querySelector('.CodeMirror');
+                    const rect = wrapper.getBoundingClientRect();
+                    cursorEl.style.left = (rect.left + coords.left) + 'px';
+                    cursorEl.style.top = (rect.top + coords.top) + 'px';
+                } else if (d.t === 'mouse') {
+                    const mouseEl = document.getElementById('remote-mouse');
+                    mouseEl.style.display = 'block';
+                    mouseEl.style.transform = `translate(${d.x}px, ${d.y}px)`;
+                }
+            },
+
+            // Audio Call Logic
+            startCall: () => {
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                    .then((stream) => {
+                        P2P.localStream = stream;
+                        P2P.call = P2P.peer.call(P2P.conn.peer, stream);
+                        P2P.call.on('stream', (remoteStream) => {
+                            const audio = new Audio();
+                            audio.srcObject = remoteStream;
+                            audio.play();
+                            P2P.startTimer();
+                            App.openModal('modal-active-call');
+                        });
+                        P2P.call.on('close', P2P.endCall);
+                    })
+                    .catch(() => Utils.toast('Mic Access Denied', 'error'));
+            },
+
+            acceptCall: () => {
+                App.closeModal('modal-call');
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                    .then((stream) => {
+                        P2P.localStream = stream;
+                        P2P.call.answer(stream);
+                        P2P.call.on('stream', (remoteStream) => {
+                            const audio = new Audio();
+                            audio.srcObject = remoteStream;
+                            audio.play();
+                            P2P.startTimer();
+                            App.openModal('modal-active-call');
+                        });
+                        P2P.call.on('close', P2P.endCall);
+                    })
+                    .catch(() => Utils.toast('Mic Access Denied', 'error'));
+            },
+
+            endCall: (rejected = false) => {
+                App.closeModal('modal-call');
+                App.closeModal('modal-active-call');
+                if (P2P.callTimer) clearInterval(P2P.callTimer);
+                P2P.callSeconds = 0;
+                if (P2P.localStream) {
+                    P2P.localStream.getTracks().forEach(t => t.stop());
+                    P2P.localStream = null;
+                }
+                if (P2P.call) { P2P.call.close(); P2P.call = null; }
+                if (rejected) Utils.toast('Call Rejected', 'error');
+            },
+
+            startTimer: () => {
+                P2P.callTimer = setInterval(() => {
+                    P2P.callSeconds++;
+                    const m = String(Math.floor(P2P.callSeconds / 60)).padStart(2, '0');
+                    const s = String(P2P.callSeconds % 60).padStart(2, '0');
+                    document.getElementById('call-timer').innerText = `${m}:${s}`;
+                }, 1000);
+            }
+        };
+
+        // Start
+        App.init();
+    </script>
 </body>
 </html>

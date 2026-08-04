@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
@@ -37,11 +38,10 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-        html, body { height: 100%; overflow: hidden; }
+        html, body { height: 100%; overflow: hidden; background: var(--bg-black); }
 
         body {
             font-family: var(--font-mono);
-            background-color: var(--bg-black);
             color: var(--text-white);
             display: flex;
             flex-direction: column;
@@ -61,56 +61,89 @@
         .boot-loader { width: 220px; height: 2px; background: var(--border-light); position: relative; overflow: hidden; clip-path: polygon(0 0, 100% 0, 95% 100%, 0 100%); }
         .boot-loader::after { content: ''; position: absolute; top: 0; left: 0; width: 30%; height: 100%; background: var(--accent-orange); }
 
-        /* Layout */
-        #app-container { display: none; flex-direction: column; height: 100vh; }
+        /* Views */
+        .view { display: none; flex-direction: column; height: 100vh; width: 100vw; }
+        .view.active { display: flex; }
+
+        /* Landing View */
+        #landing-view { overflow-y: auto; padding: 40px 20px; }
+        .landing-container { max-width: 800px; margin: 0 auto; width: 100%; }
+        .landing-hero { text-align: center; margin-bottom: 60px; padding-top: 40px; }
+        .landing-hero h1 { font-size: 2.5rem; margin-bottom: 15px; letter-spacing: -1px; }
+        .landing-hero h1 span { color: var(--accent-orange); }
+        .landing-hero p { color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto 30px; line-height: 1.6; }
+        .cta-group { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
         
-        /* Nav */
+        .section-title { font-size: 1.2rem; margin-bottom: 20px; border-left: 3px solid var(--accent-orange); padding-left: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .tech-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 60px; }
+        @media (min-width: 768px) { .tech-grid { grid-template-columns: repeat(3, 1fr); } }
+        .tech-card { background: var(--bg-panel); border: 1px solid var(--border-grey); padding: 20px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%); }
+        .tech-card h3 { color: var(--accent-orange); font-size: 0.9rem; margin-bottom: 10px; }
+        .tech-card p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+        .projects-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 40px; }
+        @media (min-width: 768px) { .projects-grid { grid-template-columns: repeat(2, 1fr); } }
+        .project-card { background: var(--bg-panel); border: 1px solid var(--border-grey); padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+        .project-card:hover { border-color: var(--accent-orange); background: var(--accent-dim); }
+        .project-info h4 { font-size: 0.9rem; margin-bottom: 4px; }
+        .project-info p { font-size: 0.7rem; color: var(--text-muted); }
+        .project-delete { background: none; border: none; color: var(--danger-red); cursor: pointer; padding: 5px; opacity: 0.5; }
+        .project-delete:hover { opacity: 1; }
+
+        /* Editor View */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 20px; border-bottom: 1px solid var(--border-grey);
             background: var(--bg-panel); z-index: 10; flex-shrink: 0;
         }
-        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; cursor: pointer; background: none; border: none; color: var(--text-white); font-family: var(--font-mono); }
         .brand span { color: var(--accent-orange); }
-        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        .nav-actions { display: flex; gap: 10px; align-items: center; }
         
         .nav-btn {
             background: transparent; border: 1px solid var(--border-light); color: var(--text-white);
             padding: 8px 12px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase;
-            letter-spacing: 1px; font-size: 0.75rem; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+            letter-spacing: 1px; font-size: 0.7rem; transition: 0.2s; display: flex; align-items: center; gap: 6px;
             clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
         }
         .nav-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
         .nav-btn.active { background: var(--accent-orange); color: var(--bg-black); border-color: var(--accent-orange); }
         .nav-btn.danger { border-color: var(--danger-red); color: var(--danger-red); }
 
-        .status-pill { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        .status-pill { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; padding: 0 5px; }
         .status-dot { width: 8px; height: 8px; background: var(--text-muted); border-radius: 50%; }
         .status-dot.online { background: var(--success-green); box-shadow: 0 0 8px var(--success-green); }
         .status-dot.connecting { background: var(--accent-orange); animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* Main Area */
         main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         
-        /* Editor Area */
-        #editor-wrapper { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); }
-        .editor-header { padding: 8px 20px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; background: var(--bg-panel); }
-        .file-info { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+        .editor-header { padding: 8px 20px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; background: var(--bg-panel); gap: 10px; flex-wrap: wrap; }
+        .file-info { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex: 1; }
         .file-dot { width: 6px; height: 6px; background: var(--accent-orange); }
         
-        .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; }
+        select.lang-select { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 4px 8px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
+        
+        /* CodeMirror Custom Theme */
+        .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; color: var(--text-white) !important; }
         .CodeMirror-gutters { background: var(--bg-panel) !important; border-right: 1px solid var(--border-grey) !important; }
         .CodeMirror-linenumber { color: var(--text-muted) !important; }
         .CodeMirror-cursor { border-left: 2px solid var(--accent-orange) !important; }
         .CodeMirror-selected { background: rgba(255, 110, 64, 0.2) !important; }
-        .CodeMirror-line { padding: 0 8px !important; }
+        .cm-s-default .cm-keyword { color: var(--accent-orange) !important; }
+        .cm-s-default .cm-string { color: #a5d6ff !important; }
+        .cm-s-default .cm-number { color: #79c0ff !important; }
+        .cm-s-default .cm-comment { color: var(--text-muted) !important; font-style: italic; }
+        .cm-s-default .cm-variable { color: var(--text-white) !important; }
+        .cm-s-default .cm-property { color: #79c0ff !important; }
+        .cm-s-default .cm-def { color: #ffd700 !important; }
+        .cm-s-default .cm-operator { color: var(--accent-orange) !important; }
+        .cm-s-default .cm-tag { color: var(--accent-orange) !important; }
+        .cm-s-default .cm-attribute { color: #79c0ff !important; }
         
-        /* Remote Cursor */
-        .remote-cursor { position: absolute; width: 2px; height: 20px; background: var(--accent-orange); z-index: 5; pointer-events: none; transition: top 0.1s, left 0.1s; }
+        .remote-cursor { position: absolute; width: 2px; height: 18px; background: var(--accent-orange); z-index: 5; pointer-events: none; transition: top 0.1s, left 0.1s; }
         .remote-cursor::after { content: attr(data-name); position: absolute; top: -18px; left: -2px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
-
-        /* Mouse Tracker */
         .remote-mouse { position: fixed; width: 20px; height: 20px; pointer-events: none; z-index: 9998; transition: transform 0.05s linear; }
         .remote-mouse svg { width: 100%; height: 100%; fill: var(--accent-orange); }
         .remote-mouse::after { content: attr(data-name); position: absolute; top: 15px; left: 15px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
@@ -151,7 +184,7 @@
         .modal-input { width: 100%; background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 12px; font-family: var(--font-mono); font-size: 0.9rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
         .modal-input:focus { border-color: var(--accent-orange); }
         
-        .btn { background: transparent; color: var(--text-white); border: 1px solid var(--border-light); padding: 12px 20px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+        .btn { background: transparent; color: var(--text-white); border: 1px solid var(--border-light); padding: 12px 20px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
         .btn-primary { background: var(--accent-orange); color: var(--bg-black); border: none; font-weight: 700; }
         .btn-primary:hover { background: #ff8a5c; color: var(--bg-black); }
@@ -164,14 +197,12 @@
         .toast.error { border-left-color: var(--danger-red); }
         .toast.success { border-left-color: var(--success-green); }
 
-        /* Audio Call Pulsing Avatar */
-        .call-avatar { width: 80px; height: 80px; border: 2px solid var(--accent-orange); margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--accent-orange); position: relative; }
-        .call-avatar::before, .call-avatar::after { content: ''; position: absolute; inset: -5px; border: 1px solid var(--accent-orange); animation: ripple 1.5s infinite; }
-        .call-avatar::after { animation-delay: 0.5s; }
-        @keyframes ripple { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
-        .call-timer { text-align: center; font-size: 0.9rem; margin-top: 10px; color: var(--success-green); }
+        /* Call Widget */
+        #call-widget { position: fixed; bottom: 20px; right: 20px; background: var(--bg-panel); border: 1px solid var(--success-green); padding: 10px 15px; display: none; align-items: center; gap: 10px; z-index: 50; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+        .call-dot { width: 8px; height: 8px; background: var(--success-green); border-radius: 50%; animation: pulse 1.5s infinite; }
+        .call-info { font-size: 0.75rem; color: var(--text-white); }
+        .call-end { background: none; border: none; color: var(--danger-red); cursor: pointer; font-size: 1rem; padding: 0 5px; }
 
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-black); }
         ::-webkit-scrollbar-thumb { background: var(--border-light); }
@@ -179,33 +210,71 @@
 </head>
 <body>
 
-    <!-- Boot Screen -->
     <div id="boot-screen">
         <div class="boot-text">Initializing System</div>
         <div class="boot-loader"></div>
     </div>
 
-    <!-- Main App -->
-    <div id="app-container">
-        <nav>
-            <div class="brand">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-orange);"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                CodeSathi <span>// COLLAB</span>
+    <!-- Landing View -->
+    <div id="landing-view" class="view">
+        <div class="landing-container">
+            <div class="landing-hero">
+                <h1>CODE<span>SATHI</span></h1>
+                <p>A no-bullshit, 100% client-side collaborative code editor. Write code, sync in real-time via WebRTC, and voice chat with your peer. No servers, no accounts, no logs.</p>
+                <div class="cta-group">
+                    <button class="btn btn-primary" onclick="App.startNewProject()">START CODING ALONE</button>
+                    <button class="btn" onclick="App.openModal('modal-connect')">CONNECT P2P</button>
+                </div>
             </div>
+
+            <div class="section-title">How The Tech Works</div>
+            <div class="tech-grid">
+                <div class="tech-card">
+                    <h3>1. WebRTC Data</h3>
+                    <p>Direct browser-to-browser connection. Keystrokes, cursors, and mouse tracks are sent as JSON payloads over the DataChannel with zero latency.</p>
+                </div>
+                <div class="tech-card">
+                    <h3>2. Media Stream</h3>
+                    <p>Voice channels use raw WebRTC MediaConnections. Mic audio is streamed directly to the peer. No central server processes your voice.</p>
+                </div>
+                <div class="tech-card">
+                    <h3>3. Local First</h3>
+                    <p>Your code is saved to localStorage. If you go offline, changes are tracked. When you reconnect, a smart sync resolves conflicts.</p>
+                </div>
+            </div>
+
+            <div class="section-title">Saved Projects</div>
+            <div class="projects-grid" id="projects-grid">
+                <!-- Projects injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor View -->
+    <div id="editor-view" class="view">
+        <nav>
+            <button class="brand" onclick="App.goToLanding()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-orange);"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                SATHI
+            </button>
             <div class="nav-actions">
                 <div class="status-pill">
                     <div class="status-dot" id="net-status"></div>
                     <span id="net-text">OFFLINE</span>
                 </div>
-                <button class="nav-btn" id="btn-connect">
+                <button class="nav-btn" id="btn-connect" onclick="App.openModal('modal-connect')">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                     CONNECT
                 </button>
-                <button class="nav-btn" id="btn-call" style="display:none;">
+                <button class="nav-btn" id="btn-call" style="display:none;" onclick="P2P.startCall()">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                     VOICE
                 </button>
-                <button class="nav-btn" id="btn-ext">
+                <button class="nav-btn" id="btn-save" onclick="App.saveProject()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    SAVE
+                </button>
+                <button class="nav-btn" id="btn-ext" onclick="App.toggleExtPanel()">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
                     TOOLS
                 </button>
@@ -213,35 +282,46 @@
         </nav>
 
         <main>
-            <div id="editor-wrapper">
+            <div id="editor-wrapper" style="flex: 1; display: flex; flex-direction: column; background: var(--bg-editor);">
                 <div class="editor-header">
                     <div class="file-info">
                         <div class="file-dot"></div>
-                        <span id="filename">untitled.js</span>
+                        <input type="text" id="filename" value="untitled.js" style="background:transparent; border:none; color:var(--text-white); font-family:var(--font-mono); font-size:0.8rem; outline:none; width:150px;">
                     </div>
-                    <div class="file-info" id="save-status">SAVED</div>
+                    <div class="file-info" id="save-status">SAVED LOCALLY</div>
+                    <select class="lang-select" id="lang-select" onchange="App.changeLang()">
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="htmlmixed">HTML</option>
+                        <option value="css">CSS</option>
+                        <option value="xml">XML</option>
+                    </select>
                 </div>
                 <textarea id="code-editor"></textarea>
                 <div class="remote-cursor" id="remote-cursor" style="display:none;" data-name="PEER"></div>
             </div>
 
-            <!-- Extension Panel -->
             <div id="ext-panel">
                 <div class="ext-header">
                     <div class="ext-title">Extensions</div>
-                    <button class="ext-close" id="ext-close">&times;</button>
+                    <button class="ext-close" onclick="App.toggleExtPanel(false)">&times;</button>
                 </div>
                 <div class="ext-list" id="ext-list"></div>
             </div>
         </main>
 
-        <!-- Remote Mouse Tracker -->
         <div class="remote-mouse" id="remote-mouse" style="display:none;" data-name="PEER">
             <svg viewBox="0 0 24 24"><path d="M5.5 3.21V20.79c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36z"/></svg>
         </div>
+
+        <div id="call-widget">
+            <div class="call-dot"></div>
+            <div class="call-info">LIVE <span id="call-timer">00:00</span></div>
+            <button class="call-end" onclick="P2P.endCall()">&times;</button>
+        </div>
     </div>
 
-    <!-- Connect Modal -->
+    <!-- Modals -->
     <div class="modal-overlay" id="modal-connect">
         <div class="modal-content">
             <div class="modal-header">
@@ -266,15 +346,13 @@
         </div>
     </div>
 
-    <!-- Incoming Call Modal -->
     <div class="modal-overlay" id="modal-call">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Incoming Voice Channel</h2>
             </div>
             <div class="modal-body" style="text-align:center;">
-                <div class="call-avatar">PEER</div>
-                <p>Incoming transmission request.</p>
+                <p>Incoming transmission request from peer.</p>
                 <div class="btn-row" style="justify-content:center;">
                     <button class="btn btn-danger" onclick="P2P.endCall(true)">Reject</button>
                     <button class="btn btn-primary" onclick="P2P.acceptCall()">Accept</button>
@@ -283,20 +361,25 @@
         </div>
     </div>
 
-    <!-- Active Call Modal -->
-    <div class="modal-overlay" id="modal-active-call" style="background:rgba(0,0,0,0.95);">
-        <div class="modal-content" style="background:transparent; border:none;">
-            <div style="text-align:center;">
-                <div class="call-avatar">LIVE</div>
-                <div class="call-timer" id="call-timer">00:00</div>
-                <div style="margin-top:20px;">
-                    <button class="btn btn-danger" onclick="P2P.endCall()">Disconnect</button>
+    <div class="modal-overlay" id="modal-save">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Save Project</h2>
+                <button class="ext-close" onclick="App.closeModal('modal-save')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label">Project Name</label>
+                    <input type="text" id="project-name" class="modal-input" placeholder="my-tactical-app.js">
+                </div>
+                <div class="btn-row">
+                    <button class="btn" onclick="App.closeModal('modal-save')">Cancel</button>
+                    <button class="btn btn-primary" onclick="App.confirmSaveProject()">Save</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Sync Conflict Modal -->
     <div class="modal-overlay" id="modal-sync">
         <div class="modal-content">
             <div class="modal-header">
@@ -312,11 +395,9 @@
         </div>
     </div>
 
-    <!-- Toast Container -->
     <div id="toast-container"></div>
 
     <script>
-        // --- Utility & Global State ---
         const Utils = {
             toast: (message, type = 'success') => {
                 const container = document.getElementById('toast-container');
@@ -325,35 +406,55 @@
                 toast.innerText = message;
                 container.appendChild(toast);
                 gsap.fromTo(toast, {x: 100, opacity: 0}, {x: 0, opacity: 1, duration: 0.3});
-                setTimeout(() => {
-                    gsap.to(toast, {x: 100, opacity: 0, duration: 0.3, onComplete: () => toast.remove()});
-                }, 3000);
+                setTimeout(() => { gsap.to(toast, {x: 100, opacity: 0, duration: 0.3, onComplete: () => toast.remove()}); }, 3000);
             }
         };
 
         const App = {
             editor: null,
             isApplyingRemote: false,
+            currentProjectId: null,
             
             init: () => {
-                // Boot Sequence
                 gsap.to('#boot-loader::after', {width: '100%', duration: 1.5, ease: 'power2.inOut'});
                 setTimeout(() => {
                     gsap.to('#boot-screen', {opacity: 0, duration: 0.5, onComplete: () => {
                         document.getElementById('boot-screen').style.display = 'none';
-                        document.getElementById('app-container').style.display = 'flex';
                         App.initEditor();
                         App.initExtensions();
                         P2P.init();
-                        App.bindEvents();
+                        App.renderProjects();
+                        App.showView('landing');
                     }});
                 }, 1500);
             },
 
+            showView: (viewName) => {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.getElementById(`${viewName}-view`).classList.add('active');
+                if (viewName === 'editor' && App.editor) {
+                    setTimeout(() => App.editor.refresh(), 100);
+                }
+            },
+
+            goToLanding: () => {
+                App.showView('landing');
+                App.renderProjects();
+            },
+
+            startNewProject: () => {
+                App.currentProjectId = null;
+                document.getElementById('filename').value = 'untitled.js';
+                document.getElementById('lang-select').value = 'javascript';
+                if (App.editor) {
+                    App.editor.setValue('// Start coding...\n');
+                    App.editor.setOption('mode', 'javascript');
+                }
+                localStorage.removeItem('codesathi_active_code');
+                App.showView('editor');
+            },
+
             initEditor: () => {
-                const savedCode = localStorage.getItem('codesathi_code') || '// Start coding...\n';
-                document.getElementById('code-editor').value = savedCode;
-                
                 App.editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
                     mode: 'javascript',
                     lineNumbers: true,
@@ -364,59 +465,29 @@
                     lineWrapping: true
                 });
 
-                // Local Save & Sync
                 let saveTimer;
-                App.editor.on('change', (instance, change) => {
+                App.editor.on('change', (instance) => {
                     if (App.isApplyingRemote) return;
-                    
                     clearTimeout(saveTimer);
                     document.getElementById('save-status').innerText = 'TYPING...';
                     saveTimer = setTimeout(() => {
-                        localStorage.setItem('codesathi_code', instance.getValue());
+                        localStorage.setItem('codesathi_active_code', instance.getValue());
                         document.getElementById('save-status').innerText = 'SAVED LOCALLY';
                     }, 800);
 
-                    // Send to peer
                     if (P2P.conn && P2P.conn.open) {
                         P2P.conn.send({ t: 'code', code: instance.getValue() });
                     }
                 });
 
-                // Cursor tracking
                 App.editor.on('cursorActivity', (instance) => {
                     if (App.isApplyingRemote) return;
                     if (P2P.conn && P2P.conn.open) {
                         const cursor = instance.getCursor();
-                        const coords = instance.charCoords(cursor, 'local');
                         P2P.conn.send({ t: 'cursor', line: cursor.line, ch: cursor.ch });
                     }
                 });
-            },
 
-            initExtensions: () => {
-                const extensions = [
-                    { id: 'json', name: 'Format JSON', desc: 'Beautify selected JSON', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"></path><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"></path></svg>', action: App.extJson },
-                    { id: 'uuid', name: 'Insert UUID', desc: 'Generate v4 UUID at cursor', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>', action: App.extUuid },
-                    { id: 'b64', name: 'Base64 Encode', desc: 'Encode selected text', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>', action: App.extB64 }
-                ];
-
-                const list = document.getElementById('ext-list');
-                extensions.forEach(ext => {
-                    const div = document.createElement('div');
-                    div.className = 'ext-item';
-                    div.innerHTML = `<div style="display:flex; gap:10px; align-items:center;"><div style="color:var(--accent-orange);">${ext.icon}</div><div><h4>${ext.name}</h4><p>${ext.desc}</p></div></div>`;
-                    div.onclick = () => ext.action();
-                    list.appendChild(div);
-                });
-            },
-
-            bindEvents: () => {
-                document.getElementById('btn-connect').onclick = () => App.openModal('modal-connect');
-                document.getElementById('btn-ext').onclick = () => App.toggleExtPanel();
-                document.getElementById('ext-close').onclick = () => App.toggleExtPanel(false);
-                document.getElementById('btn-call').onclick = () => P2P.startCall();
-
-                // Mouse tracking
                 document.addEventListener('mousemove', (e) => {
                     if (P2P.conn && P2P.conn.open) {
                         P2P.conn.send({ t: 'mouse', x: e.clientX, y: e.clientY });
@@ -429,6 +500,60 @@
                 });
             },
 
+            changeLang: () => {
+                const lang = document.getElementById('lang-select').value;
+                App.editor.setOption('mode', lang);
+                let ext = 'js';
+                if (lang === 'python') ext = 'py';
+                if (lang === 'htmlmixed') ext = 'html';
+                if (lang === 'css') ext = 'css';
+                if (lang === 'xml') ext = 'xml';
+                const currentName = document.getElementById('filename').value.split('.')[0];
+                document.getElementById('filename').value = `${currentName}.${ext}`;
+            },
+
+            initExtensions: () => {
+                const extensions = [
+                    { name: 'Format JSON', desc: 'Beautify selected JSON', action: () => App.extAction('json') },
+                    { name: 'Insert UUID', desc: 'Generate v4 UUID', action: () => App.extAction('uuid') },
+                    { name: 'Base64 Encode', desc: 'Encode selected text', action: () => App.extAction('b64_enc') },
+                    { name: 'Base64 Decode', desc: 'Decode selected text', action: () => App.extAction('b64_dec') },
+                    { name: 'URL Encode', desc: 'Encode URI component', action: () => App.extAction('url_enc') },
+                    { name: 'URL Decode', desc: 'Decode URI component', action: () => App.extAction('url_dec') },
+                    { name: 'Lorem Ipsum', desc: 'Insert placeholder text', action: () => App.extAction('lorem') },
+                    { name: 'Sort Lines', desc: 'Sort selected lines A-Z', action: () => App.extAction('sort') }
+                ];
+
+                const list = document.getElementById('ext-list');
+                list.innerHTML = '';
+                extensions.forEach(ext => {
+                    const div = document.createElement('div');
+                    div.className = 'ext-item';
+                    div.innerHTML = `<h4>${ext.name}</h4><p>${ext.desc}</p>`;
+                    div.onclick = ext.action;
+                    list.appendChild(div);
+                });
+            },
+
+            extAction: (type) => {
+                const text = App.editor.getSelection();
+                if (!text && !['uuid', 'lorem'].includes(type)) return Utils.toast('Select text first', 'error');
+                
+                try {
+                    switch(type) {
+                        case 'json': App.editor.replaceSelection(JSON.stringify(JSON.parse(text), null, 2)); break;
+                        case 'uuid': App.editor.replaceSelection(crypto.randomUUID()); break;
+                        case 'b64_enc': App.editor.replaceSelection(btoa(text)); break;
+                        case 'b64_dec': App.editor.replaceSelection(atob(text)); break;
+                        case 'url_enc': App.editor.replaceSelection(encodeURIComponent(text)); break;
+                        case 'url_dec': App.editor.replaceSelection(decodeURIComponent(text)); break;
+                        case 'lorem': App.editor.replaceSelection('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'); break;
+                        case 'sort': App.editor.replaceSelection(text.split('\n').sort().join('\n')); break;
+                    }
+                    Utils.toast('Action executed');
+                } catch (e) { Utils.toast('Action failed', 'error'); }
+            },
+
             toggleExtPanel: (show = true) => {
                 if (show) gsap.to('#ext-panel', {right: 0, duration: 0.3});
                 else gsap.to('#ext-panel', {right: -280, duration: 0.3});
@@ -437,28 +562,6 @@
             openModal: (id) => document.getElementById(id).classList.add('active'),
             closeModal: (id) => document.getElementById(id).classList.remove('active'),
 
-            // Extension Actions
-            extJson: () => {
-                const text = App.editor.getSelection();
-                if (!text) return Utils.toast('Select JSON text first', 'error');
-                try {
-                    App.editor.replaceSelection(JSON.stringify(JSON.parse(text), null, 2));
-                    Utils.toast('JSON Formatted');
-                } catch (e) { Utils.toast('Invalid JSON', 'error'); }
-            },
-            extUuid: () => {
-                const uuid = crypto.randomUUID();
-                App.editor.replaceSelection(uuid);
-                Utils.toast('UUID Inserted');
-            },
-            extB64: () => {
-                const text = App.editor.getSelection();
-                if (!text) return Utils.toast('Select text first', 'error');
-                try { App.editor.replaceSelection(btoa(text)); Utils.toast('Encoded'); } 
-                catch (e) { Utils.toast('Invalid text', 'error'); }
-            },
-
-            // Sync Logic
             handleSyncConflict: (remoteCode) => {
                 App.remoteCodeBuffer = remoteCode;
                 App.openModal('modal-sync');
@@ -471,20 +574,80 @@
                 App.closeModal('modal-sync');
                 App.isApplyingRemote = true;
                 App.editor.setValue(App.remoteCodeBuffer);
-                localStorage.setItem('codesathi_code', App.remoteCodeBuffer);
+                localStorage.setItem('codesathi_active_code', App.remoteCodeBuffer);
                 App.isApplyingRemote = false;
+            },
+
+            saveProject: () => {
+                document.getElementById('project-name').value = document.getElementById('filename').value;
+                App.openModal('modal-save');
+            },
+
+            confirmSaveProject: () => {
+                const name = document.getElementById('project-name').value;
+                if (!name) return Utils.toast('Enter a name', 'error');
+                
+                let projects = JSON.parse(localStorage.getItem('codesathi_projects') || '[]');
+                const code = App.editor.getValue();
+                const lang = document.getElementById('lang-select').value;
+                
+                if (App.currentProjectId) {
+                    const idx = projects.findIndex(p => p.id === App.currentProjectId);
+                    if (idx > -1) { projects[idx].name = name; projects[idx].code = code; projects[idx].lang = lang; }
+                } else {
+                    projects.push({ id: Date.now().toString(), name, code, lang });
+                }
+                
+                localStorage.setItem('codesathi_projects', JSON.stringify(projects));
+                App.closeModal('modal-save');
+                Utils.toast('Project Saved');
+                document.getElementById('filename').value = name;
+            },
+
+            renderProjects: () => {
+                const projects = JSON.parse(localStorage.getItem('codesathi_projects') || '[]');
+                const grid = document.getElementById('projects-grid');
+                grid.innerHTML = '';
+                
+                if (projects.length === 0) {
+                    grid.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No saved projects. Start coding alone to save one.</p>';
+                    return;
+                }
+                
+                projects.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'project-card';
+                    card.innerHTML = `<div class="project-info"><h4>${p.name}</h4><p>${p.lang}</p></div><button class="project-delete" onclick="App.deleteProject('${p.id}', event)">&times;</button>`;
+                    card.onclick = () => App.loadProject(p.id);
+                    grid.appendChild(card);
+                });
+            },
+
+            loadProject: (id) => {
+                const projects = JSON.parse(localStorage.getItem('codesathi_projects') || '[]');
+                const proj = projects.find(p => p.id === id);
+                if (!proj) return;
+                
+                App.currentProjectId = proj.id;
+                document.getElementById('filename').value = proj.name;
+                document.getElementById('lang-select').value = proj.lang;
+                App.editor.setOption('mode', proj.lang);
+                App.editor.setValue(proj.code);
+                App.showView('editor');
+            },
+
+            deleteProject: (id, e) => {
+                e.stopPropagation();
+                let projects = JSON.parse(localStorage.getItem('codesathi_projects') || '[]');
+                projects = projects.filter(p => p.id !== id);
+                localStorage.setItem('codesathi_projects', JSON.stringify(projects));
+                App.renderProjects();
+                Utils.toast('Project Deleted', 'error');
             }
         };
 
-        // --- P2P Networking ---
         const P2P = {
-            peer: null,
-            conn: null,
-            call: null,
-            localStream: null,
-            myId: null,
-            callTimer: null,
-            callSeconds: 0,
+            peer: null, conn: null, call: null, localStream: null, myId: null, callTimer: null, callSeconds: 0,
 
             init: () => {
                 P2P.myId = localStorage.getItem('codesathi_peer_id');
@@ -493,38 +656,23 @@
                     localStorage.setItem('codesathi_peer_id', P2P.myId);
                 }
                 document.getElementById('my-peer-id').value = P2P.myId;
-
                 P2P.peer = new Peer(P2P.myId, { debug: 0 });
 
-                P2P.peer.on('open', (id) => {
-                    document.getElementById('net-status').classList.remove('connecting');
+                P2P.peer.on('open', () => {
                     document.getElementById('net-status').classList.add('online');
                     document.getElementById('net-text').innerText = 'ONLINE';
                 });
 
-                P2P.peer.on('connection', (dc) => {
-                    P2P.conn = dc;
-                    P2P.wireConnection();
-                });
-
-                P2P.peer.on('call', (incomingCall) => {
-                    P2P.call = incomingCall;
-                    App.openModal('modal-call');
-                });
-
-                P2P.peer.on('error', (err) => {
-                    console.error(err);
-                    Utils.toast('P2P Error: ' + err.type, 'error');
-                });
+                P2P.peer.on('connection', (dc) => { P2P.conn = dc; P2P.wireConnection(); });
+                P2P.peer.on('call', (incomingCall) => { P2P.call = incomingCall; App.openModal('modal-call'); });
+                P2P.peer.on('error', (err) => { Utils.toast('P2P Error: ' + err.type, 'error'); });
             },
 
             connect: () => {
                 const targetId = document.getElementById('target-peer-id').value.trim();
                 if (!targetId || !P2P.peer) return;
-                
                 document.getElementById('net-status').classList.add('connecting');
                 document.getElementById('net-text').innerText = 'LINKING...';
-                
                 P2P.conn = P2P.peer.connect(targetId, { reliable: true });
                 P2P.wireConnection();
             },
@@ -537,13 +685,10 @@
                     document.getElementById('net-text').innerText = 'CONNECTED';
                     document.getElementById('btn-call').style.display = 'flex';
                     Utils.toast('Peer Linked', 'success');
-                    
-                    // Initial Sync Request
                     P2P.conn.send({ t: 'sync_req', code: App.editor.getValue() });
                 });
 
                 P2P.conn.on('data', P2P.handleData);
-                
                 P2P.conn.on('close', () => {
                     document.getElementById('net-status').classList.remove('online');
                     document.getElementById('net-text').innerText = 'DISCONNECTED';
@@ -556,22 +701,18 @@
 
             handleData: (d) => {
                 if (d.t === 'sync_req') {
-                    // Compare local vs remote
-                    if (App.editor.getValue() !== d.code) {
-                        App.handleSyncConflict(d.code);
-                    }
+                    if (App.editor.getValue() !== d.code) App.handleSyncConflict(d.code);
                 } else if (d.t === 'code') {
                     App.isApplyingRemote = true;
                     const cursor = App.editor.getCursor();
                     App.editor.setValue(d.code);
                     App.editor.setCursor(cursor);
                     App.isApplyingRemote = false;
-                    localStorage.setItem('codesathi_code', d.code);
+                    localStorage.setItem('codesathi_active_code', d.code);
                 } else if (d.t === 'cursor') {
                     const cursorEl = document.getElementById('remote-cursor');
                     cursorEl.style.display = 'block';
                     const coords = App.editor.charCoords({line: d.line, ch: d.ch}, 'local');
-                    // CodeMirror local coords need to be adjusted by the wrapper offset
                     const wrapper = document.querySelector('.CodeMirror');
                     const rect = wrapper.getBoundingClientRect();
                     cursorEl.style.left = (rect.left + coords.left) + 'px';
@@ -583,22 +724,17 @@
                 }
             },
 
-            // Audio Call Logic
             startCall: () => {
                 navigator.mediaDevices.getUserMedia({ audio: true, video: false })
                     .then((stream) => {
                         P2P.localStream = stream;
                         P2P.call = P2P.peer.call(P2P.conn.peer, stream);
                         P2P.call.on('stream', (remoteStream) => {
-                            const audio = new Audio();
-                            audio.srcObject = remoteStream;
-                            audio.play();
-                            P2P.startTimer();
-                            App.openModal('modal-active-call');
+                            const audio = new Audio(); audio.srcObject = remoteStream; audio.play();
+                            P2P.startTimer(); document.getElementById('call-widget').style.display = 'flex';
                         });
                         P2P.call.on('close', P2P.endCall);
-                    })
-                    .catch(() => Utils.toast('Mic Access Denied', 'error'));
+                    }).catch(() => Utils.toast('Mic Access Denied', 'error'));
             },
 
             acceptCall: () => {
@@ -608,26 +744,19 @@
                         P2P.localStream = stream;
                         P2P.call.answer(stream);
                         P2P.call.on('stream', (remoteStream) => {
-                            const audio = new Audio();
-                            audio.srcObject = remoteStream;
-                            audio.play();
-                            P2P.startTimer();
-                            App.openModal('modal-active-call');
+                            const audio = new Audio(); audio.srcObject = remoteStream; audio.play();
+                            P2P.startTimer(); document.getElementById('call-widget').style.display = 'flex';
                         });
                         P2P.call.on('close', P2P.endCall);
-                    })
-                    .catch(() => Utils.toast('Mic Access Denied', 'error'));
+                    }).catch(() => Utils.toast('Mic Access Denied', 'error'));
             },
 
             endCall: (rejected = false) => {
                 App.closeModal('modal-call');
-                App.closeModal('modal-active-call');
+                document.getElementById('call-widget').style.display = 'none';
                 if (P2P.callTimer) clearInterval(P2P.callTimer);
                 P2P.callSeconds = 0;
-                if (P2P.localStream) {
-                    P2P.localStream.getTracks().forEach(t => t.stop());
-                    P2P.localStream = null;
-                }
+                if (P2P.localStream) { P2P.localStream.getTracks().forEach(t => t.stop()); P2P.localStream = null; }
                 if (P2P.call) { P2P.call.close(); P2P.call = null; }
                 if (rejected) Utils.toast('Call Rejected', 'error');
             },
@@ -642,7 +771,6 @@
             }
         };
 
-        // Start
         App.init();
     </script>
 </body>

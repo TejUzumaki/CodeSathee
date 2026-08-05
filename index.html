@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CodeSathi // Tactical Dev Environment</title>
+    <title>CodeSathee // Tactical Dev Environment</title>
     
     <!-- CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -72,9 +72,14 @@
         .landing-hero h1 { font-size: 2.5rem; margin-bottom: 15px; letter-spacing: -1px; }
         .landing-hero h1 span { color: var(--accent-orange); }
         .landing-hero p { color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto 30px; line-height: 1.6; }
-        .cta-group { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .cta-group { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
         
-        .section-title { font-size: 1.2rem; margin-bottom: 20px; border-left: 3px solid var(--accent-orange); padding-left: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .user-setup { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; }
+        .user-input { background: var(--bg-panel); border: 1px solid var(--border-grey); color: var(--text-white); padding: 10px 15px; font-family: var(--font-mono); font-size: 0.9rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); max-width: 250px; }
+        .user-input:focus { border-color: var(--accent-orange); }
+
+        .section-title { font-size: 1.2rem; margin-bottom: 20px; border-left: 3px solid var(--accent-orange); padding-left: 12px; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
+        .section-title button { background: none; border: 1px solid var(--border-light); color: var(--danger-red); padding: 4px 8px; font-size: 0.7rem; cursor: pointer; font-family: var(--font-mono); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
         
         .tech-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 60px; }
         @media (min-width: 768px) { .tech-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -88,7 +93,7 @@
         .project-card:hover { border-color: var(--accent-orange); background: var(--accent-dim); }
         .project-info h4 { font-size: 0.9rem; margin-bottom: 4px; }
         .project-info p { font-size: 0.7rem; color: var(--text-muted); }
-        .project-delete { background: none; border: none; color: var(--danger-red); cursor: pointer; padding: 5px; opacity: 0.5; }
+        .project-delete { background: none; border: none; color: var(--danger-red); cursor: pointer; padding: 5px; opacity: 0.5; font-size: 1.2rem; }
         .project-delete:hover { opacity: 1; }
 
         /* Editor View */
@@ -123,7 +128,14 @@
         .file-info { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex: 1; }
         .file-dot { width: 6px; height: 6px; background: var(--accent-orange); }
         
-        select.lang-select { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 4px 8px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
+        select.lang-select { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 4px 8px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); cursor: pointer; }
+        
+        /* Split Editor Layout */
+        #split-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        @media (min-width: 900px) { #split-wrapper { flex-direction: row; } }
+        
+        #editor-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); overflow: hidden; border-bottom: 1px solid var(--border-grey); }
+        @media (min-width: 900px) { #editor-pane { border-bottom: none; border-right: 1px solid var(--border-grey); } }
         
         /* CodeMirror Custom Theme */
         .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; color: var(--text-white) !important; }
@@ -147,6 +159,19 @@
         .remote-mouse { position: fixed; width: 20px; height: 20px; pointer-events: none; z-index: 9998; transition: transform 0.05s linear; }
         .remote-mouse svg { width: 100%; height: 100%; fill: var(--accent-orange); }
         .remote-mouse::after { content: attr(data-name); position: absolute; top: 15px; left: 15px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
+
+        /* Preview & Terminal Pane */
+        #output-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-black); overflow: hidden; }
+        .output-tabs { display: flex; border-bottom: 1px solid var(--border-grey); background: var(--bg-panel); }
+        .tab-btn { background: none; border: none; color: var(--text-muted); padding: 10px 20px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; text-transform: uppercase; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: var(--accent-orange); border-bottom-color: var(--accent-orange); }
+        
+        #preview-frame { flex: 1; width: 100%; background: white; border: none; }
+        
+        #terminal-output { flex: 1; overflow-y: auto; padding: 15px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--success-green); background: var(--bg-editor); display: none; white-space: pre-wrap; }
+        #terminal-output.active { display: block; }
+        .term-error { color: var(--danger-red); }
+        .term-info { color: var(--text-muted); }
 
         /* Extension Panel */
         #ext-panel {
@@ -184,12 +209,16 @@
         .modal-input { width: 100%; background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 12px; font-family: var(--font-mono); font-size: 0.9rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
         .modal-input:focus { border-color: var(--accent-orange); }
         
-        .btn { background: transparent; color: var(--text-white); border: 1px solid var(--border-light); padding: 12px 20px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn { background: transparent; color: var(--text-white); border: 1px solid var(--border-light); padding: 12px 20px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
         .btn-primary { background: var(--accent-orange); color: var(--bg-black); border: none; font-weight: 700; }
         .btn-primary:hover { background: #ff8a5c; color: var(--bg-black); }
         .btn-danger { background: var(--danger-red); color: var(--bg-black); border: none; font-weight: 700; }
         .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+        
+        .recent-list { margin-top: 15px; }
+        .recent-item { padding: 10px; border: 1px solid var(--border-grey); margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
+        .recent-item:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
 
         /* Toast */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
@@ -219,8 +248,13 @@
     <div id="landing-view" class="view">
         <div class="landing-container">
             <div class="landing-hero">
-                <h1>CODE<span>SATHI</span></h1>
+                <h1>CODE<span>SATHEE</span></h1>
                 <p>A no-bullshit, 100% client-side collaborative code editor. Write code, sync in real-time via WebRTC, and voice chat with your peer. No servers, no accounts, no logs.</p>
+                
+                <div class="user-setup">
+                    <input type="text" id="username-input" class="user-input" placeholder="ENTER YOUR CALLSIGN" maxlength="15">
+                </div>
+
                 <div class="cta-group">
                     <button class="btn btn-primary" onclick="App.startNewProject()">START CODING ALONE</button>
                     <button class="btn" onclick="App.openModal('modal-connect')">CONNECT P2P</button>
@@ -243,10 +277,11 @@
                 </div>
             </div>
 
-            <div class="section-title">Saved Projects</div>
-            <div class="projects-grid" id="projects-grid">
-                <!-- Projects injected here -->
+            <div class="section-title">
+                <span>Saved Projects</span>
+                <button onclick="App.panicWipe()">PURGE ALL</button>
             </div>
+            <div class="projects-grid" id="projects-grid"></div>
         </div>
     </div>
 
@@ -255,7 +290,7 @@
         <nav>
             <button class="brand" onclick="App.goToLanding()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-orange);"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                SATHI
+                SATHEE
             </button>
             <div class="nav-actions">
                 <div class="status-pill">
@@ -282,23 +317,34 @@
         </nav>
 
         <main>
-            <div id="editor-wrapper" style="flex: 1; display: flex; flex-direction: column; background: var(--bg-editor);">
-                <div class="editor-header">
-                    <div class="file-info">
-                        <div class="file-dot"></div>
-                        <input type="text" id="filename" value="untitled.js" style="background:transparent; border:none; color:var(--text-white); font-family:var(--font-mono); font-size:0.8rem; outline:none; width:150px;">
+            <div id="split-wrapper">
+                <div id="editor-pane">
+                    <div class="editor-header">
+                        <div class="file-info">
+                            <div class="file-dot"></div>
+                            <input type="text" id="filename" value="untitled.js" style="background:transparent; border:none; color:var(--text-white); font-family:var(--font-mono); font-size:0.8rem; outline:none; width:150px;">
+                        </div>
+                        <div class="file-info" id="save-status">SAVED LOCALLY</div>
+                        <select class="lang-select" id="lang-select" onchange="App.changeLang(true)">
+                            <option value="javascript">JavaScript</option>
+                            <option value="python">Python</option>
+                            <option value="htmlmixed">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="xml">XML</option>
+                        </select>
                     </div>
-                    <div class="file-info" id="save-status">SAVED LOCALLY</div>
-                    <select class="lang-select" id="lang-select" onchange="App.changeLang()">
-                        <option value="javascript">JavaScript</option>
-                        <option value="python">Python</option>
-                        <option value="htmlmixed">HTML</option>
-                        <option value="css">CSS</option>
-                        <option value="xml">XML</option>
-                    </select>
+                    <textarea id="code-editor"></textarea>
+                    <div class="remote-cursor" id="remote-cursor" style="display:none;" data-name="PEER"></div>
                 </div>
-                <textarea id="code-editor"></textarea>
-                <div class="remote-cursor" id="remote-cursor" style="display:none;" data-name="PEER"></div>
+
+                <div id="output-pane">
+                    <div class="output-tabs">
+                        <button class="tab-btn active" onclick="App.switchTab('preview')">PREVIEW</button>
+                        <button class="tab-btn" onclick="App.switchTab('terminal')">TERMINAL</button>
+                    </div>
+                    <iframe id="preview-frame" sandbox="allow-scripts"></iframe>
+                    <div id="terminal-output"></div>
+                </div>
             </div>
 
             <div id="ext-panel">
@@ -338,6 +384,7 @@
                     <label class="input-label">Target Peer ID</label>
                     <input type="text" id="target-peer-id" class="modal-input" placeholder="ENTER CALLSIGN...">
                 </div>
+                <div class="recent-list" id="recent-list"></div>
                 <div class="btn-row">
                     <button class="btn" onclick="App.closeModal('modal-connect')">Cancel</button>
                     <button class="btn btn-primary" onclick="P2P.connect()">Link</button>
@@ -414,6 +461,8 @@
             editor: null,
             isApplyingRemote: false,
             currentProjectId: null,
+            wakeLock: null,
+            activeTab: 'preview',
             
             init: () => {
                 gsap.to('#boot-loader::after', {width: '100%', duration: 1.5, ease: 'power2.inOut'});
@@ -422,24 +471,49 @@
                         document.getElementById('boot-screen').style.display = 'none';
                         App.initEditor();
                         App.initExtensions();
+                        App.initUsername();
                         P2P.init();
                         App.renderProjects();
                         App.showView('landing');
+                        App.bindMouseEvents();
                     }});
                 }, 1500);
+            },
+
+            initUsername: () => {
+                const name = localStorage.getItem('codesathee_username') || 'USER-' + Math.floor(Math.random() * 9999);
+                document.getElementById('username-input').value = name;
+                document.getElementById('username-input').addEventListener('input', (e) => {
+                    localStorage.setItem('codesathee_username', e.target.value);
+                    document.getElementById('remote-cursor').setAttribute('data-name', e.target.value.toUpperCase());
+                    document.getElementById('remote-mouse').setAttribute('data-name', e.target.value.toUpperCase());
+                    if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'profile', username: e.target.value });
+                });
+                document.getElementById('remote-cursor').setAttribute('data-name', name.toUpperCase());
+                document.getElementById('remote-mouse').setAttribute('data-name', name.toUpperCase());
+            },
+
+            requestWakeLock: async () => {
+                try { App.wakeLock = await navigator.wakeLock.request('screen'); } 
+                catch (err) { console.log('Wake Lock failed:', err); }
             },
 
             showView: (viewName) => {
                 document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
                 document.getElementById(`${viewName}-view`).classList.add('active');
-                if (viewName === 'editor' && App.editor) {
-                    setTimeout(() => App.editor.refresh(), 100);
+                if (viewName === 'editor') {
+                    if (App.editor) setTimeout(() => App.editor.refresh(), 100);
+                    App.requestWakeLock();
+                    App.updatePreview();
+                } else {
+                    if (App.wakeLock) { App.wakeLock.release().then(() => App.wakeLock = null); }
                 }
             },
 
             goToLanding: () => {
                 App.showView('landing');
                 App.renderProjects();
+                App.renderRecents();
             },
 
             startNewProject: () => {
@@ -450,7 +524,6 @@
                     App.editor.setValue('// Start coding...\n');
                     App.editor.setOption('mode', 'javascript');
                 }
-                localStorage.removeItem('codesathi_active_code');
                 App.showView('editor');
             },
 
@@ -471,13 +544,14 @@
                     clearTimeout(saveTimer);
                     document.getElementById('save-status').innerText = 'TYPING...';
                     saveTimer = setTimeout(() => {
-                        localStorage.setItem('codesathi_active_code', instance.getValue());
+                        localStorage.setItem('codesathee_active_code', instance.getValue());
                         document.getElementById('save-status').innerText = 'SAVED LOCALLY';
                     }, 800);
 
                     if (P2P.conn && P2P.conn.open) {
                         P2P.conn.send({ t: 'code', code: instance.getValue() });
                     }
+                    App.updatePreview();
                 });
 
                 App.editor.on('cursorActivity', (instance) => {
@@ -487,20 +561,18 @@
                         P2P.conn.send({ t: 'cursor', line: cursor.line, ch: cursor.ch });
                     }
                 });
+            },
 
+            bindMouseEvents: () => {
                 document.addEventListener('mousemove', (e) => {
-                    if (P2P.conn && P2P.conn.open) {
-                        P2P.conn.send({ t: 'mouse', x: e.clientX, y: e.clientY });
-                    }
+                    if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'mouse', x: e.clientX, y: e.clientY });
                 });
                 document.addEventListener('touchmove', (e) => {
-                    if (P2P.conn && P2P.conn.open && e.touches[0]) {
-                        P2P.conn.send({ t: 'mouse', x: e.touches[0].clientX, y: e.touches[0].clientY });
-                    }
+                    if (P2P.conn && P2P.conn.open && e.touches[0]) P2P.conn.send({ t: 'mouse', x: e.touches[0].clientX, y: e.touches[0].clientY });
                 });
             },
 
-            changeLang: () => {
+            changeLang: (broadcast = false) => {
                 const lang = document.getElementById('lang-select').value;
                 App.editor.setOption('mode', lang);
                 let ext = 'js';
@@ -508,8 +580,79 @@
                 if (lang === 'htmlmixed') ext = 'html';
                 if (lang === 'css') ext = 'css';
                 if (lang === 'xml') ext = 'xml';
-                const currentName = document.getElementById('filename').value.split('.')[0];
+                const currentName = document.getElementById('filename').value.split('.')[0] || 'untitled';
                 document.getElementById('filename').value = `${currentName}.${ext}`;
+                
+                if (broadcast && P2P.conn && P2P.conn.open) {
+                    P2P.conn.send({ t: 'state', lang: lang, filename: document.getElementById('filename').value });
+                }
+                App.updatePreview();
+            },
+
+            updatePreview: () => {
+                const lang = document.getElementById('lang-select').value;
+                if (lang === 'htmlmixed') {
+                    document.getElementById('preview-frame').srcdoc = App.editor.getValue();
+                } else if (lang === 'javascript') {
+                    // Executed via terminal run button
+                }
+            },
+
+            switchTab: (tab) => {
+                App.activeTab = tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                event.target.classList.add('active');
+                if (tab === 'preview') {
+                    document.getElementById('preview-frame').style.display = 'block';
+                    document.getElementById('terminal-output').classList.remove('active');
+                } else {
+                    document.getElementById('preview-frame').style.display = 'none';
+                    document.getElementById('terminal-output').classList.add('active');
+                }
+            },
+
+            runCode: () => {
+                const lang = document.getElementById('lang-select').value;
+                const term = document.getElementById('terminal-output');
+                term.innerHTML = '';
+                App.switchTab('terminal');
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.querySelector('.tab-btn:nth-child(1)').classList.remove('active');
+
+                if (lang !== 'javascript') {
+                    term.innerHTML = `<span class="term-info">// Execution currently supports JS only.</span>\n`;
+                    return;
+                }
+
+                const code = App.editor.getValue();
+                // Capture console.log
+                const logCapture = `
+                    (function() {
+                        let logs = [];
+                        const oldLog = console.log;
+                        console.log = function(...args) { logs.push(args.join(' ')); oldLog.apply(console, args); };
+                        try {
+                            ${code}
+                        } catch(e) {
+                            logs.push('ERROR: ' + e.message);
+                        }
+                        console.log = oldLog;
+                        return logs.join('\\n');
+                    })();
+                `;
+                
+                // Use iframe sandbox for execution
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.sandbox = 'allow-scripts';
+                document.body.appendChild(iframe);
+                
+                iframe.onload = () => {
+                    const result = iframe.contentWindow.eval(logCapture);
+                    term.innerHTML = result || '<span class="term-info">// Execution finished.</span>';
+                    document.body.removeChild(iframe);
+                };
+                iframe.src = 'about:blank';
             },
 
             initExtensions: () => {
@@ -521,7 +664,8 @@
                     { name: 'URL Encode', desc: 'Encode URI component', action: () => App.extAction('url_enc') },
                     { name: 'URL Decode', desc: 'Decode URI component', action: () => App.extAction('url_dec') },
                     { name: 'Lorem Ipsum', desc: 'Insert placeholder text', action: () => App.extAction('lorem') },
-                    { name: 'Sort Lines', desc: 'Sort selected lines A-Z', action: () => App.extAction('sort') }
+                    { name: 'Sort Lines', desc: 'Sort selected lines A-Z', action: () => App.extAction('sort') },
+                    { name: 'Run JS', desc: 'Execute JS in terminal', action: () => App.runCode() }
                 ];
 
                 const list = document.getElementById('ext-list');
@@ -559,7 +703,10 @@
                 else gsap.to('#ext-panel', {right: -280, duration: 0.3});
             },
 
-            openModal: (id) => document.getElementById(id).classList.add('active'),
+            openModal: (id) => {
+                if (id === 'modal-connect') App.renderRecents();
+                document.getElementById(id).classList.add('active');
+            },
             closeModal: (id) => document.getElementById(id).classList.remove('active'),
 
             handleSyncConflict: (remoteCode) => {
@@ -568,13 +715,16 @@
             },
             keepLocal: () => {
                 App.closeModal('modal-sync');
-                if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'code', code: App.editor.getValue() });
+                if (P2P.conn && P2P.conn.open) {
+                    P2P.conn.send({ t: 'code', code: App.editor.getValue() });
+                    P2P.conn.send({ t: 'state', lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
+                }
             },
             takeRemote: () => {
                 App.closeModal('modal-sync');
                 App.isApplyingRemote = true;
                 App.editor.setValue(App.remoteCodeBuffer);
-                localStorage.setItem('codesathi_active_code', App.remoteCodeBuffer);
+                localStorage.setItem('codesathee_active_code', App.remoteCodeBuffer);
                 App.isApplyingRemote = false;
             },
 
@@ -587,7 +737,7 @@
                 const name = document.getElementById('project-name').value;
                 if (!name) return Utils.toast('Enter a name', 'error');
                 
-                let projects = JSON.parse(localStorage.getItem('codesathi_projects') || '[]');
+                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
                 const code = App.editor.getValue();
                 const lang = document.getElementById('lang-select').value;
                 
@@ -598,14 +748,14 @@
                     projects.push({ id: Date.now().toString(), name, code, lang });
                 }
                 
-                localStorage.setItem('codesathi_projects', JSON.stringify(projects));
+                localStorage.setItem('codesathee_projects', JSON.stringify(projects));
                 App.closeModal('modal-save');
                 Utils.toast('Project Saved');
                 document.getElementById('filename').value = name;
             },
 
             renderProjects: () => {
-                const projects = JSON.parse(localStorage.getItem('codesathi_projects') || '[]');
+                const projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
                 const grid = document.getElementById('projects-grid');
                 grid.innerHTML = '';
                 
@@ -624,7 +774,7 @@
             },
 
             loadProject: (id) => {
-                const projects = JSON.parse(localStorage.getItem('codesathi_projects') || '[]');
+                const projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
                 const proj = projects.find(p => p.id === id);
                 if (!proj) return;
                 
@@ -638,11 +788,48 @@
 
             deleteProject: (id, e) => {
                 e.stopPropagation();
-                let projects = JSON.parse(localStorage.getItem('codesathi_projects') || '[]');
+                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
                 projects = projects.filter(p => p.id !== id);
-                localStorage.setItem('codesathi_projects', JSON.stringify(projects));
+                localStorage.setItem('codesathee_projects', JSON.stringify(projects));
                 App.renderProjects();
                 Utils.toast('Project Deleted', 'error');
+            },
+
+            renderRecents: () => {
+                const recents = JSON.parse(localStorage.getItem('codesathee_recents') || '[]');
+                const list = document.getElementById('recent-list');
+                list.innerHTML = '';
+                if (recents.length > 0) {
+                    const title = document.createElement('div');
+                    title.className = 'input-label';
+                    title.style.marginBottom = '8px';
+                    title.innerText = 'Recent Connections';
+                    list.appendChild(title);
+                }
+                recents.forEach(id => {
+                    const div = document.createElement('div');
+                    div.className = 'recent-item';
+                    div.innerHTML = `<span>${id}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+                    div.onclick = () => {
+                        document.getElementById('target-peer-id').value = id;
+                    };
+                    list.appendChild(div);
+                });
+            },
+
+            addRecent: (id) => {
+                if (!id) return;
+                let recents = JSON.parse(localStorage.getItem('codesathee_recents') || '[]');
+                recents = recents.filter(r => r !== id);
+                recents.unshift(id);
+                if (recents.length > 5) recents = recents.slice(0, 5);
+                localStorage.setItem('codesathee_recents', JSON.stringify(recents));
+            },
+
+            panicWipe: () => {
+                localStorage.clear();
+                Utils.toast('Local Data Purged', 'error');
+                setTimeout(() => location.reload(), 1000);
             }
         };
 
@@ -650,10 +837,10 @@
             peer: null, conn: null, call: null, localStream: null, myId: null, callTimer: null, callSeconds: 0,
 
             init: () => {
-                P2P.myId = localStorage.getItem('codesathi_peer_id');
+                P2P.myId = localStorage.getItem('codesathee_peer_id');
                 if (!P2P.myId) {
                     P2P.myId = 'CS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-                    localStorage.setItem('codesathi_peer_id', P2P.myId);
+                    localStorage.setItem('codesathee_peer_id', P2P.myId);
                 }
                 document.getElementById('my-peer-id').value = P2P.myId;
                 P2P.peer = new Peer(P2P.myId, { debug: 0 });
@@ -685,7 +872,11 @@
                     document.getElementById('net-text').innerText = 'CONNECTED';
                     document.getElementById('btn-call').style.display = 'flex';
                     Utils.toast('Peer Linked', 'success');
-                    P2P.conn.send({ t: 'sync_req', code: App.editor.getValue() });
+                    App.addRecent(P2P.conn.peer);
+                    
+                    const username = localStorage.getItem('codesathee_username') || 'PEER';
+                    P2P.conn.send({ t: 'profile', username: username });
+                    P2P.conn.send({ t: 'sync_req', code: App.editor.getValue(), lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
                 });
 
                 P2P.conn.on('data', P2P.handleData);
@@ -695,20 +886,29 @@
                     document.getElementById('btn-call').style.display = 'none';
                     document.getElementById('remote-cursor').style.display = 'none';
                     document.getElementById('remote-mouse').style.display = 'none';
+                    document.getElementById('remote-cursor').setAttribute('data-name', 'PEER');
+                    document.getElementById('remote-mouse').setAttribute('data-name', 'PEER');
                     Utils.toast('Peer Disconnected', 'error');
                 });
             },
 
             handleData: (d) => {
-                if (d.t === 'sync_req') {
+                if (d.t === 'profile') {
+                    document.getElementById('remote-cursor').setAttribute('data-name', d.username.toUpperCase());
+                    document.getElementById('remote-mouse').setAttribute('data-name', d.username.toUpperCase());
+                } else if (d.t === 'sync_req') {
                     if (App.editor.getValue() !== d.code) App.handleSyncConflict(d.code);
+                    App.applyState(d.lang, d.filename);
+                } else if (d.t === 'state') {
+                    App.applyState(d.lang, d.filename);
                 } else if (d.t === 'code') {
                     App.isApplyingRemote = true;
                     const cursor = App.editor.getCursor();
                     App.editor.setValue(d.code);
                     App.editor.setCursor(cursor);
                     App.isApplyingRemote = false;
-                    localStorage.setItem('codesathi_active_code', d.code);
+                    localStorage.setItem('codesathee_active_code', d.code);
+                    App.updatePreview();
                 } else if (d.t === 'cursor') {
                     const cursorEl = document.getElementById('remote-cursor');
                     cursorEl.style.display = 'block';
@@ -769,6 +969,16 @@
                     document.getElementById('call-timer').innerText = `${m}:${s}`;
                 }, 1000);
             }
+        };
+
+        // Helper to apply remote state
+        App.applyState = (lang, filename) => {
+            if (lang) {
+                document.getElementById('lang-select').value = lang;
+                App.editor.setOption('mode', lang);
+            }
+            if (filename) document.getElementById('filename').value = filename;
+            App.updatePreview();
         };
 
         App.init();

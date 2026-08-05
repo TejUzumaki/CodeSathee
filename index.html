@@ -15,10 +15,26 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <!-- CodeMirror Addons -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchtags.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/trailingspace.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
+    <!-- Emmet & Pyodide & PeerJS & GSAP & jsdiff -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/emmet-core/0.1.5/emmet.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
 
     <style>
         :root {
@@ -130,19 +146,23 @@
         
         select.lang-select { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 4px 8px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); cursor: pointer; }
         
-        /* Split Editor Layout */
+        /* Context-Aware Split Layout */
         #split-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        @media (min-width: 900px) { #split-wrapper { flex-direction: row; } }
+        #split-wrapper.layout-horizontal { flex-direction: row; } /* HTML Preview */
+        #split-wrapper.layout-vertical { flex-direction: column; } /* JS/Python Terminal */
         
-        #editor-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); overflow: hidden; border-bottom: 1px solid var(--border-grey); }
-        @media (min-width: 900px) { #editor-pane { border-bottom: none; border-right: 1px solid var(--border-grey); } }
+        #editor-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); overflow: hidden; min-width: 0; min-height: 0; }
+        .layout-horizontal #editor-pane { border-right: 1px solid var(--border-grey); }
+        .layout-vertical #editor-pane { border-bottom: 1px solid var(--border-grey); }
         
         /* CodeMirror Custom Theme */
-        .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; color: var(--text-white) !important; }
+        .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; color: var(--text-white) !important; line-height: 1.5 !important; }
         .CodeMirror-gutters { background: var(--bg-panel) !important; border-right: 1px solid var(--border-grey) !important; }
         .CodeMirror-linenumber { color: var(--text-muted) !important; }
         .CodeMirror-cursor { border-left: 2px solid var(--accent-orange) !important; }
         .CodeMirror-selected { background: rgba(255, 110, 64, 0.2) !important; }
+        .CodeMirror-activeline-background { background: rgba(255, 255, 255, 0.03) !important; }
+        .CodeMirror-matchingbracket { color: var(--accent-orange) !important; text-decoration: underline; border-bottom: 1px solid var(--accent-orange); }
         .cm-s-default .cm-keyword { color: var(--accent-orange) !important; }
         .cm-s-default .cm-string { color: #a5d6ff !important; }
         .cm-s-default .cm-number { color: #79c0ff !important; }
@@ -153,6 +173,7 @@
         .cm-s-default .cm-operator { color: var(--accent-orange) !important; }
         .cm-s-default .cm-tag { color: var(--accent-orange) !important; }
         .cm-s-default .cm-attribute { color: #79c0ff !important; }
+        .CodeMirror-foldmarker { background: var(--bg-panel); color: var(--accent-orange); border: 1px solid var(--border-light); padding: 0 4px; }
         
         .remote-cursor { position: absolute; width: 2px; height: 18px; background: var(--accent-orange); z-index: 5; pointer-events: none; transition: top 0.1s, left 0.1s; }
         .remote-cursor::after { content: attr(data-name); position: absolute; top: -18px; left: -2px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
@@ -161,7 +182,7 @@
         .remote-mouse::after { content: attr(data-name); position: absolute; top: 15px; left: 15px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
 
         /* Preview & Terminal Pane */
-        #output-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-black); overflow: hidden; }
+        #output-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-black); overflow: hidden; min-width: 0; min-height: 0; }
         .output-tabs { display: flex; border-bottom: 1px solid var(--border-grey); background: var(--bg-panel); }
         .tab-btn { background: none; border: none; color: var(--text-muted); padding: 10px 20px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; text-transform: uppercase; border-bottom: 2px solid transparent; }
         .tab-btn.active { color: var(--accent-orange); border-bottom-color: var(--accent-orange); }
@@ -172,6 +193,7 @@
         #terminal-output.active { display: block; }
         .term-error { color: var(--danger-red); }
         .term-info { color: var(--text-muted); }
+        .term-warn { color: #ffd700; }
 
         /* Extension Panel */
         #ext-panel {
@@ -198,6 +220,7 @@
         .modal-content {
             width: 100%; max-width: 500px; background: var(--bg-panel); border: 1px solid var(--border-light);
             clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+            max-height: 90vh; overflow-y: auto;
         }
         .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; }
         .modal-header h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-orange); }
@@ -220,6 +243,16 @@
         .recent-item { padding: 10px; border: 1px solid var(--border-grey); margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
         .recent-item:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
 
+        /* Diff View */
+        #diff-view { font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.4; max-height: 300px; overflow-y: auto; background: var(--bg-editor); padding: 10px; border: 1px solid var(--border-grey); margin-bottom: 15px; }
+        .diff-added { background: rgba(76, 175, 80, 0.15); color: var(--success-green); display: block; }
+        .diff-removed { background: rgba(255, 77, 77, 0.15); color: var(--danger-red); display: block; }
+
+        /* Timeline */
+        #timeline-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 30px; background: var(--bg-panel); border-top: 1px solid var(--border-grey); display: flex; align-items: center; padding: 0 10px; gap: 10px; overflow-x: auto; z-index: 5; }
+        .timeline-item { font-size: 0.65rem; color: var(--text-muted); border: 1px solid var(--border-grey); padding: 3px 8px; cursor: pointer; white-space: nowrap; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
+        .timeline-item:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+
         /* Toast */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--bg-panel); border-left: 3px solid var(--accent-orange); padding: 12px 20px; color: var(--text-white); font-size: 0.8rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); min-width: 200px; }
@@ -227,7 +260,8 @@
         .toast.success { border-left-color: var(--success-green); }
 
         /* Call Widget */
-        #call-widget { position: fixed; bottom: 20px; right: 20px; background: var(--bg-panel); border: 1px solid var(--success-green); padding: 10px 15px; display: none; align-items: center; gap: 10px; z-index: 50; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+        #call-widget { position: fixed; bottom: 20px; right: 20px; background: var(--bg-panel); border: 1px solid var(--success-green); padding: 10px 15px; display: none; align-items: center; gap: 10px; z-index: 50; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); transition: box-shadow 0.1s; }
+        #call-widget.speaking { box-shadow: 0 0 15px var(--success-green); }
         .call-dot { width: 8px; height: 8px; background: var(--success-green); border-radius: 50%; animation: pulse 1.5s infinite; }
         .call-info { font-size: 0.75rem; color: var(--text-white); }
         .call-end { background: none; border: none; color: var(--danger-red); cursor: pointer; font-size: 1rem; padding: 0 5px; }
@@ -305,7 +339,7 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                     VOICE
                 </button>
-                <button class="nav-btn" id="btn-save" onclick="App.saveProject()">
+                <button class="nav-btn" id="btn-save" onclick="App.saveProject(true)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                     SAVE
                 </button>
@@ -317,7 +351,7 @@
         </nav>
 
         <main>
-            <div id="split-wrapper">
+            <div id="split-wrapper" class="layout-vertical">
                 <div id="editor-pane">
                     <div class="editor-header">
                         <div class="file-info">
@@ -338,7 +372,7 @@
                 </div>
 
                 <div id="output-pane">
-                    <div class="output-tabs">
+                    <div class="output-tabs" id="output-tabs">
                         <button class="tab-btn active" onclick="App.switchTab('preview')">PREVIEW</button>
                         <button class="tab-btn" onclick="App.switchTab('terminal')">TERMINAL</button>
                     </div>
@@ -346,6 +380,8 @@
                     <div id="terminal-output"></div>
                 </div>
             </div>
+
+            <div id="timeline-bar"></div>
 
             <div id="ext-panel">
                 <div class="ext-header">
@@ -421,7 +457,7 @@
                 </div>
                 <div class="btn-row">
                     <button class="btn" onclick="App.closeModal('modal-save')">Cancel</button>
-                    <button class="btn btn-primary" onclick="App.confirmSaveProject()">Save</button>
+                    <button class="btn btn-primary" onclick="App.confirmSaveProject(true)">Save</button>
                 </div>
             </div>
         </div>
@@ -433,7 +469,8 @@
                 <h2>Data Sync Conflict</h2>
             </div>
             <div class="modal-body">
-                <p>Your peer has a different local version of the code. Do you want to apply their changes or keep yours?</p>
+                <p>Your peer has a different local version of the code. Review the changes below before merging.</p>
+                <div id="diff-view"></div>
                 <div class="btn-row">
                     <button class="btn" onclick="App.keepLocal()">Keep Mine</button>
                     <button class="btn btn-primary" onclick="App.takeRemote()">Take Theirs</button>
@@ -462,7 +499,9 @@
             isApplyingRemote: false,
             currentProjectId: null,
             wakeLock: null,
-            activeTab: 'preview',
+            activeTab: 'terminal',
+            pyodideReadyPromise: null,
+            snapshots: [],
             
             init: () => {
                 gsap.to('#boot-loader::after', {width: '100%', duration: 1.5, ease: 'power2.inOut'});
@@ -476,6 +515,7 @@
                         App.renderProjects();
                         App.showView('landing');
                         App.bindMouseEvents();
+                        App.changeLang(false); // Set initial layout
                     }});
                 }, 1500);
             },
@@ -495,7 +535,7 @@
 
             requestWakeLock: async () => {
                 try { App.wakeLock = await navigator.wakeLock.request('screen'); } 
-                catch (err) { console.log('Wake Lock failed:', err); }
+                catch (err) {}
             },
 
             showView: (viewName) => {
@@ -504,7 +544,6 @@
                 if (viewName === 'editor') {
                     if (App.editor) setTimeout(() => App.editor.refresh(), 100);
                     App.requestWakeLock();
-                    App.updatePreview();
                 } else {
                     if (App.wakeLock) { App.wakeLock.release().then(() => App.wakeLock = null); }
                 }
@@ -524,7 +563,10 @@
                     App.editor.setValue('// Start coding...\n');
                     App.editor.setOption('mode', 'javascript');
                 }
+                App.snapshots = [];
+                App.renderTimeline();
                 App.showView('editor');
+                App.changeLang(false);
             },
 
             initEditor: () => {
@@ -533,9 +575,43 @@
                     lineNumbers: true,
                     theme: 'default',
                     autoCloseTags: true,
-                    autoCloseBrackets: true,
+                    autoCloseBrackets: { explodeBrackets: true, explodeStrings: true },
+                    matchBrackets: true,
+                    matchTags: { bothTags: true },
+                    styleActiveLine: true,
+                    foldGutter: true,
+                    gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
                     tabSize: 2,
-                    lineWrapping: true
+                    indentUnit: 2,
+                    indentWithTabs: false,
+                    lineWrapping: true,
+                    extraKeys: {
+                        "Ctrl-Space": "autocomplete",
+                        "Ctrl-F": "find",
+                        "Cmd-F": "find",
+                        "Tab": (cm) => {
+                            if (cm.somethingSelected()) {
+                                cm.indentSelection("add");
+                            } else {
+                                const cursor = cm.getCursor();
+                                const line = cm.getLine(cursor.line);
+                                // Emmet for HTML
+                                if (cm.getOption("mode") === "htmlmixed" && line.trim() !== "") {
+                                    try {
+                                        const emmetExpanded = emmet.expandAbbreviation(line.trim());
+                                        if (emmetExpanded) {
+                                            cm.replaceRange(emmetExpanded, {line: cursor.line, ch: 0}, {line: cursor.line, ch: line.length});
+                                            return;
+                                        }
+                                    } catch(e) {}
+                                }
+                                cm.replaceSelection("  ", "end");
+                            }
+                        },
+                        "Enter": "newlineAndIndentContinueComment",
+                        "Alt-Up": "swapLineUp",
+                        "Alt-Down": "swapLineDown"
+                    }
                 });
 
                 let saveTimer;
@@ -583,6 +659,25 @@
                 const currentName = document.getElementById('filename').value.split('.')[0] || 'untitled';
                 document.getElementById('filename').value = `${currentName}.${ext}`;
                 
+                // Context Aware Layout
+                const wrapper = document.getElementById('split-wrapper');
+                const tabs = document.getElementById('output-tabs');
+                if (lang === 'htmlmixed' || lang === 'css') {
+                    wrapper.className = 'layout-horizontal';
+                    tabs.children[0].style.display = 'block'; // Preview
+                    tabs.children[1].style.display = 'none'; // Terminal
+                    App.switchTab('preview');
+                } else if (lang === 'javascript' || lang === 'python') {
+                    wrapper.className = 'layout-vertical';
+                    tabs.children[0].style.display = 'none'; // Preview
+                    tabs.children[1].style.display = 'block'; // Terminal
+                    App.switchTab('terminal');
+                } else {
+                    wrapper.className = 'layout-vertical';
+                    tabs.children[0].style.display = 'none';
+                    tabs.children[1].style.display = 'none';
+                }
+
                 if (broadcast && P2P.conn && P2P.conn.open) {
                     P2P.conn.send({ t: 'state', lang: lang, filename: document.getElementById('filename').value });
                 }
@@ -593,15 +688,16 @@
                 const lang = document.getElementById('lang-select').value;
                 if (lang === 'htmlmixed') {
                     document.getElementById('preview-frame').srcdoc = App.editor.getValue();
-                } else if (lang === 'javascript') {
-                    // Executed via terminal run button
                 }
             },
 
             switchTab: (tab) => {
                 App.activeTab = tab;
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                event.target.classList.add('active');
+                // Find the visible button to activate
+                const visibleBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.style.display !== 'none' && b.innerText.toLowerCase().includes(tab));
+                if (visibleBtn) visibleBtn.classList.add('active');
+                
                 if (tab === 'preview') {
                     document.getElementById('preview-frame').style.display = 'block';
                     document.getElementById('terminal-output').classList.remove('active');
@@ -611,61 +707,71 @@
                 }
             },
 
-            runCode: () => {
+            // --- Python / JS Execution ---
+            runCode: async () => {
                 const lang = document.getElementById('lang-select').value;
                 const term = document.getElementById('terminal-output');
                 term.innerHTML = '';
                 App.switchTab('terminal');
-                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-                document.querySelector('.tab-btn:nth-child(1)').classList.remove('active');
+                term.classList.add('active');
 
-                if (lang !== 'javascript') {
-                    term.innerHTML = `<span class="term-info">// Execution currently supports JS only.</span>\n`;
-                    return;
+                if (lang === 'python') {
+                    term.innerHTML = '<span class="term-info">Initializing Python WASM Runtime...</span>';
+                    try {
+                        await App.ensurePyodide();
+                        term.innerHTML += '<span class="term-info">Executing...</span>\n';
+                        let stdout = '';
+                        pyodide.setStdout({ batched: (s) => stdout += s + '\n' });
+                        pyodide.setStderr({ batched: (s) => stdout += 'ERROR: ' + s + '\n' });
+                        await pyodide.runPythonAsync(App.editor.getValue());
+                        term.innerHTML += stdout || '<span class="term-info">// Execution finished.</span>';
+                    } catch(e) {
+                        term.innerHTML += `<span class="term-error">${e.message}</span>`;
+                    }
+                } else if (lang === 'javascript') {
+                    const code = App.editor.getValue();
+                    const logCapture = `
+                        (function() {
+                            let logs = [];
+                            const oldLog = console.log;
+                            const oldErr = console.error;
+                            console.log = function(...args) { logs.push(args.join(' ')); oldLog.apply(console, args); };
+                            console.error = function(...args) { logs.push('ERROR: ' + args.join(' ')); oldErr.apply(console, args); };
+                            try { ${code} } catch(e) { logs.push('FATAL: ' + e.message); }
+                            console.log = oldLog; console.error = oldErr;
+                            return logs.join('\\n');
+                        })();
+                    `;
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.sandbox = 'allow-scripts';
+                    document.body.appendChild(iframe);
+                    iframe.onload = () => {
+                        const result = iframe.contentWindow.eval(logCapture);
+                        term.innerHTML = result || '<span class="term-info">// Execution finished.</span>';
+                        document.body.removeChild(iframe);
+                    };
+                    iframe.src = 'about:blank';
+                } else {
+                    term.innerHTML = `<span class="term-info">// Execution not supported for ${lang}.</span>`;
                 }
+            },
 
-                const code = App.editor.getValue();
-                // Capture console.log
-                const logCapture = `
-                    (function() {
-                        let logs = [];
-                        const oldLog = console.log;
-                        console.log = function(...args) { logs.push(args.join(' ')); oldLog.apply(console, args); };
-                        try {
-                            ${code}
-                        } catch(e) {
-                            logs.push('ERROR: ' + e.message);
-                        }
-                        console.log = oldLog;
-                        return logs.join('\\n');
-                    })();
-                `;
-                
-                // Use iframe sandbox for execution
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.sandbox = 'allow-scripts';
-                document.body.appendChild(iframe);
-                
-                iframe.onload = () => {
-                    const result = iframe.contentWindow.eval(logCapture);
-                    term.innerHTML = result || '<span class="term-info">// Execution finished.</span>';
-                    document.body.removeChild(iframe);
-                };
-                iframe.src = 'about:blank';
+            ensurePyodide: function() {
+                if (!App.pyodideReadyPromise) {
+                    App.pyodideReadyPromise = loadPyodide();
+                }
+                return App.pyodideReadyPromise;
             },
 
             initExtensions: () => {
                 const extensions = [
+                    { name: 'Run Code', desc: 'Execute JS/Python', action: () => App.runCode() },
                     { name: 'Format JSON', desc: 'Beautify selected JSON', action: () => App.extAction('json') },
                     { name: 'Insert UUID', desc: 'Generate v4 UUID', action: () => App.extAction('uuid') },
                     { name: 'Base64 Encode', desc: 'Encode selected text', action: () => App.extAction('b64_enc') },
                     { name: 'Base64 Decode', desc: 'Decode selected text', action: () => App.extAction('b64_dec') },
-                    { name: 'URL Encode', desc: 'Encode URI component', action: () => App.extAction('url_enc') },
-                    { name: 'URL Decode', desc: 'Decode URI component', action: () => App.extAction('url_dec') },
-                    { name: 'Lorem Ipsum', desc: 'Insert placeholder text', action: () => App.extAction('lorem') },
-                    { name: 'Sort Lines', desc: 'Sort selected lines A-Z', action: () => App.extAction('sort') },
-                    { name: 'Run JS', desc: 'Execute JS in terminal', action: () => App.runCode() }
+                    { name: 'Create Snapshot', desc: 'Save local timeline point', action: () => App.createSnapshot() }
                 ];
 
                 const list = document.getElementById('ext-list');
@@ -681,18 +787,13 @@
 
             extAction: (type) => {
                 const text = App.editor.getSelection();
-                if (!text && !['uuid', 'lorem'].includes(type)) return Utils.toast('Select text first', 'error');
-                
+                if (!text && !['uuid'].includes(type)) return Utils.toast('Select text first', 'error');
                 try {
                     switch(type) {
                         case 'json': App.editor.replaceSelection(JSON.stringify(JSON.parse(text), null, 2)); break;
                         case 'uuid': App.editor.replaceSelection(crypto.randomUUID()); break;
                         case 'b64_enc': App.editor.replaceSelection(btoa(text)); break;
                         case 'b64_dec': App.editor.replaceSelection(atob(text)); break;
-                        case 'url_enc': App.editor.replaceSelection(encodeURIComponent(text)); break;
-                        case 'url_dec': App.editor.replaceSelection(decodeURIComponent(text)); break;
-                        case 'lorem': App.editor.replaceSelection('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'); break;
-                        case 'sort': App.editor.replaceSelection(text.split('\n').sort().join('\n')); break;
                     }
                     Utils.toast('Action executed');
                 } catch (e) { Utils.toast('Action failed', 'error'); }
@@ -709,15 +810,56 @@
             },
             closeModal: (id) => document.getElementById(id).classList.remove('active'),
 
+            // --- Snapshots ---
+            createSnapshot: () => {
+                const snap = { ts: Date.now(), code: App.editor.getValue() };
+                App.snapshots.push(snap);
+                if (App.snapshots.length > 10) App.snapshots.shift();
+                App.renderTimeline();
+                Utils.toast('Snapshot Saved');
+            },
+
+            renderTimeline: () => {
+                const bar = document.getElementById('timeline-bar');
+                bar.innerHTML = '';
+                if (App.snapshots.length === 0) return;
+                const label = document.createElement('div');
+                label.style.fontSize = '0.65rem'; label.style.color = 'var(--text-muted)'; label.innerText = 'TIMELINE:';
+                bar.appendChild(label);
+                App.snapshots.forEach((s, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'timeline-item';
+                    item.innerText = new Date(s.ts).toLocaleTimeString();
+                    item.onclick = () => {
+                        App.isApplyingRemote = true;
+                        App.editor.setValue(s.code);
+                        App.isApplyingRemote = false;
+                        Utils.toast('Snapshot Restored');
+                    };
+                    bar.appendChild(item);
+                });
+            },
+
+            // --- Sync & Save ---
             handleSyncConflict: (remoteCode) => {
                 App.remoteCodeBuffer = remoteCode;
+                const localCode = App.editor.getValue();
+                const diff = JsDiff.diffLines(localCode, remoteCode);
+                const diffView = document.getElementById('diff-view');
+                diffView.innerHTML = '';
+                diff.forEach(part => {
+                    const color = part.added ? 'diff-added' : part.removed ? 'diff-removed' : '';
+                    const span = document.createElement('span');
+                    span.className = color;
+                    span.textContent = part.value;
+                    diffView.appendChild(span);
+                });
                 App.openModal('modal-sync');
             },
             keepLocal: () => {
                 App.closeModal('modal-sync');
                 if (P2P.conn && P2P.conn.open) {
                     P2P.conn.send({ t: 'code', code: App.editor.getValue() });
-                    P2P.conn.send({ t: 'state', lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
                 }
             },
             takeRemote: () => {
@@ -728,12 +870,13 @@
                 App.isApplyingRemote = false;
             },
 
-            saveProject: () => {
+            saveProject: (notifyPeer = false) => {
                 document.getElementById('project-name').value = document.getElementById('filename').value;
                 App.openModal('modal-save');
+                App._notifyPeerOnSave = notifyPeer;
             },
 
-            confirmSaveProject: () => {
+            confirmSaveProject: (notifyPeer = false) => {
                 const name = document.getElementById('project-name').value;
                 if (!name) return Utils.toast('Enter a name', 'error');
                 
@@ -745,25 +888,29 @@
                     const idx = projects.findIndex(p => p.id === App.currentProjectId);
                     if (idx > -1) { projects[idx].name = name; projects[idx].code = code; projects[idx].lang = lang; }
                 } else {
-                    projects.push({ id: Date.now().toString(), name, code, lang });
+                    const newProj = { id: Date.now().toString(), name, code, lang };
+                    projects.push(newProj);
+                    App.currentProjectId = newProj.id;
                 }
                 
                 localStorage.setItem('codesathee_projects', JSON.stringify(projects));
                 App.closeModal('modal-save');
                 Utils.toast('Project Saved');
                 document.getElementById('filename').value = name;
+
+                if (notifyPeer && P2P.conn && P2P.conn.open) {
+                    P2P.conn.send({ t: 'sys_event', action: 'save', name: name, lang: lang, code: code });
+                }
             },
 
             renderProjects: () => {
                 const projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
                 const grid = document.getElementById('projects-grid');
                 grid.innerHTML = '';
-                
                 if (projects.length === 0) {
                     grid.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No saved projects. Start coding alone to save one.</p>';
                     return;
                 }
-                
                 projects.forEach(p => {
                     const card = document.createElement('div');
                     card.className = 'project-card';
@@ -777,22 +924,26 @@
                 const projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
                 const proj = projects.find(p => p.id === id);
                 if (!proj) return;
-                
                 App.currentProjectId = proj.id;
                 document.getElementById('filename').value = proj.name;
                 document.getElementById('lang-select').value = proj.lang;
                 App.editor.setOption('mode', proj.lang);
                 App.editor.setValue(proj.code);
                 App.showView('editor');
+                App.changeLang(false);
             },
 
             deleteProject: (id, e) => {
                 e.stopPropagation();
                 let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                const proj = projects.find(p => p.id === id);
                 projects = projects.filter(p => p.id !== id);
                 localStorage.setItem('codesathee_projects', JSON.stringify(projects));
                 App.renderProjects();
                 Utils.toast('Project Deleted', 'error');
+                if (proj && P2P.conn && P2P.conn.open) {
+                    P2P.conn.send({ t: 'sys_event', action: 'delete', name: proj.name });
+                }
             },
 
             renderRecents: () => {
@@ -801,18 +952,14 @@
                 list.innerHTML = '';
                 if (recents.length > 0) {
                     const title = document.createElement('div');
-                    title.className = 'input-label';
-                    title.style.marginBottom = '8px';
-                    title.innerText = 'Recent Connections';
+                    title.className = 'input-label'; title.style.marginBottom = '8px'; title.innerText = 'Recent Connections';
                     list.appendChild(title);
                 }
                 recents.forEach(id => {
                     const div = document.createElement('div');
                     div.className = 'recent-item';
                     div.innerHTML = `<span>${id}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
-                    div.onclick = () => {
-                        document.getElementById('target-peer-id').value = id;
-                    };
+                    div.onclick = () => { document.getElementById('target-peer-id').value = id; };
                     list.appendChild(div);
                 });
             },
@@ -830,11 +977,22 @@
                 localStorage.clear();
                 Utils.toast('Local Data Purged', 'error');
                 setTimeout(() => location.reload(), 1000);
+            },
+
+            applyState: (lang, filename) => {
+                if (lang) {
+                    document.getElementById('lang-select').value = lang;
+                    App.editor.setOption('mode', lang);
+                    App.changeLang(false);
+                }
+                if (filename) document.getElementById('filename').value = filename;
+                App.updatePreview();
             }
         };
 
         const P2P = {
             peer: null, conn: null, call: null, localStream: null, myId: null, callTimer: null, callSeconds: 0,
+            audioCtx: null, analyser: null, audioLoop: null,
 
             init: () => {
                 P2P.myId = localStorage.getItem('codesathee_peer_id');
@@ -921,6 +1079,19 @@
                     const mouseEl = document.getElementById('remote-mouse');
                     mouseEl.style.display = 'block';
                     mouseEl.style.transform = `translate(${d.x}px, ${d.y}px)`;
+                } else if (d.t === 'sys_event') {
+                    if (d.action === 'save') {
+                        Utils.toast(`Peer saved ${d.name}`, 'success');
+                        // Auto-save peer's file locally to keep sync
+                        let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                        const peerName = `[PEER] ${d.name}`;
+                        let idx = projects.findIndex(p => p.name === peerName);
+                        if (idx > -1) { projects[idx].code = d.code; projects[idx].lang = d.lang; }
+                        else { projects.push({ id: Date.now().toString(), name: peerName, code: d.code, lang: d.lang }); }
+                        localStorage.setItem('codesathee_projects', JSON.stringify(projects));
+                    } else if (d.action === 'delete') {
+                        Utils.toast(`Peer deleted ${d.name}`, 'error');
+                    }
                 }
             },
 
@@ -931,6 +1102,7 @@
                         P2P.call = P2P.peer.call(P2P.conn.peer, stream);
                         P2P.call.on('stream', (remoteStream) => {
                             const audio = new Audio(); audio.srcObject = remoteStream; audio.play();
+                            P2P.setupVAD(remoteStream);
                             P2P.startTimer(); document.getElementById('call-widget').style.display = 'flex';
                         });
                         P2P.call.on('close', P2P.endCall);
@@ -945,16 +1117,41 @@
                         P2P.call.answer(stream);
                         P2P.call.on('stream', (remoteStream) => {
                             const audio = new Audio(); audio.srcObject = remoteStream; audio.play();
+                            P2P.setupVAD(remoteStream);
                             P2P.startTimer(); document.getElementById('call-widget').style.display = 'flex';
                         });
                         P2P.call.on('close', P2P.endCall);
                     }).catch(() => Utils.toast('Mic Access Denied', 'error'));
             },
 
+            setupVAD: (stream) => {
+                try {
+                    P2P.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = P2P.audioCtx.createMediaStreamSource(stream);
+                    P2P.analyser = P2P.audioCtx.createAnalyser();
+                    P2P.analyser.fftSize = 256;
+                    source.connect(P2P.analyser);
+                    const data = new Uint8Array(P2P.analyser.frequencyBinCount);
+                    
+                    P2P.audioLoop = setInterval(() => {
+                        P2P.analyser.getByteFrequencyData(data);
+                        const avg = data.reduce((a, b) => a + b) / data.length;
+                        if (avg > 20) { // Threshold for speaking
+                            document.getElementById('call-widget').classList.add('speaking');
+                        } else {
+                            document.getElementById('call-widget').classList.remove('speaking');
+                        }
+                    }, 100);
+                } catch(e) { console.error("VAD Error", e); }
+            },
+
             endCall: (rejected = false) => {
                 App.closeModal('modal-call');
                 document.getElementById('call-widget').style.display = 'none';
+                document.getElementById('call-widget').classList.remove('speaking');
                 if (P2P.callTimer) clearInterval(P2P.callTimer);
+                if (P2P.audioLoop) clearInterval(P2P.audioLoop);
+                if (P2P.audioCtx) { P2P.audioCtx.close(); P2P.audioCtx = null; }
                 P2P.callSeconds = 0;
                 if (P2P.localStream) { P2P.localStream.getTracks().forEach(t => t.stop()); P2P.localStream = null; }
                 if (P2P.call) { P2P.call.close(); P2P.call = null; }
@@ -969,16 +1166,6 @@
                     document.getElementById('call-timer').innerText = `${m}:${s}`;
                 }, 1000);
             }
-        };
-
-        // Helper to apply remote state
-        App.applyState = (lang, filename) => {
-            if (lang) {
-                document.getElementById('lang-select').value = lang;
-                App.editor.setOption('mode', lang);
-            }
-            if (filename) document.getElementById('filename').value = filename;
-            App.updatePreview();
         };
 
         App.init();

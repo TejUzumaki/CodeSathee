@@ -75,7 +75,8 @@
         }
         .boot-text { color: var(--accent-orange); font-size: 0.9rem; letter-spacing: 3px; margin-bottom: 15px; text-transform: uppercase; }
         .boot-loader { width: 220px; height: 2px; background: var(--border-light); position: relative; overflow: hidden; clip-path: polygon(0 0, 100% 0, 95% 100%, 0 100%); }
-        .boot-loader::after { content: ''; position: absolute; top: 0; left: 0; width: 30%; height: 100%; background: var(--accent-orange); }
+        .boot-loader::after { content: ''; position: absolute; top: 0; left: 0; width: 30%; height: 100%; background: var(--accent-orange); animation: loadBar 1.5s ease-in-out infinite; }
+        @keyframes loadBar { 0% { left: -30%; } 100% { left: 100%; } }
 
         /* Views */
         .view { display: none; flex-direction: column; height: 100vh; width: 100vw; }
@@ -483,7 +484,7 @@
     <div id="toast-container"></div>
 
     <script>
-        // --- Core Initialization (Decoupled from UI) ---
+        // --- Core Initialization (Completely Decoupled) ---
         const safeSetItem = (key, val) => {
             try { localStorage.setItem(key, val); } catch (e) { Utils.toast('Local Storage Full! Purge data.', 'error'); }
         };
@@ -491,6 +492,7 @@
         const Utils = {
             toast: (message, type = 'success') => {
                 const container = document.getElementById('toast-container');
+                if (!container) return;
                 const toast = document.createElement('div');
                 toast.className = `toast ${type}`;
                 toast.innerText = message;
@@ -506,8 +508,21 @@
         };
 
         // Yjs CRDT Setup
-        const ydoc = new Y.Doc();
-        const ytext = ydoc.getText('codesathee');
+        let ydoc, ytext;
+        try {
+            ydoc = new Y.Doc();
+            ytext = ydoc.getText('codesathee');
+        } catch (e) {
+            console.error("Yjs failed to load. Operating in solo mode.", e);
+            // Fallback dummy Yjs implementation to prevent crashes
+            ydoc = { transact: (fn) => fn(), on: () => {} };
+            ytext = { 
+                toString: () => localStorage.getItem('codesathee_active_code') || '// Start coding...\n',
+                delete: () => {}, 
+                insert: () => {}, 
+                observe: () => {} 
+            };
+        }
         let isApplyingRemote = false;
 
         const App = {
@@ -524,27 +539,30 @@
             previewTimer: null,
             
             init: () => {
-                // 1. Synchronous Core Logic
-                App.initEditor();
-                App.initExtensions();
-                App.initUsername();
-                P2P.init();
-                App.renderProjects();
-                App.bindMouseEvents();
-                App.initGutterDrag();
-                App.changeLang(false);
-                App.renderTimeline();
-
-                // 2. Visual Boot Screen Fade (Completely Decoupled)
-                const bootScreen = document.getElementById('boot-screen');
+                // 1. UNCONDITIONAL UI UNBLOCK (Runs immediately, ignores all errors below)
                 setTimeout(() => {
-                    if (window.gsap) {
-                        gsap.to(bootScreen, { opacity: 0, duration: 0.5, onComplete: () => { bootScreen.style.display = 'none'; } });
-                    } else {
+                    const bootScreen = document.getElementById('boot-screen');
+                    if (bootScreen) {
                         bootScreen.style.opacity = '0';
                         setTimeout(() => { bootScreen.style.display = 'none'; }, 500);
                     }
-                }, 1500);
+                }, 1600);
+
+                // 2. Core Logic (Wrapped in try-catch so a single failure doesn't freeze the UI)
+                try {
+                    App.initEditor();
+                    App.initExtensions();
+                    App.initUsername();
+                    P2P.init();
+                    App.renderProjects();
+                    App.bindMouseEvents();
+                    App.initGutterDrag();
+                    App.changeLang(false);
+                    App.renderTimeline();
+                } catch (err) {
+                    console.error("Initialization Error:", err);
+                    Utils.toast('System initialization error: ' + err.message, 'error');
+                }
             },
 
             initUsername: () => {
@@ -563,6 +581,7 @@
 
             initGutterDrag: () => {
                 const gutter = document.getElementById('split-gutter');
+                if (!gutter) return;
                 let isDragging = false;
                 
                 const startDrag = (e) => {
@@ -637,10 +656,12 @@
                 document.getElementById('lang-select').value = 'javascript';
                 
                 // Reset Yjs Doc safely
-                ydoc.transact(() => {
-                    ytext.delete(0, ytext.toString().length);
-                    ytext.insert(0, '// Start coding...\n');
-                }, 'local');
+                if (ydoc && ytext) {
+                    ydoc.transact(() => {
+                        ytext.delete(0, ytext.toString().length);
+                        ytext.insert(0, '// Start coding...\n');
+                    }, 'local');
+                }
                 
                 App.snapshots = [];
                 App.renderTimeline();
@@ -649,12 +670,13 @@
             },
 
             initEditor: () => {
+                if (!window.CodeMirror) throw new Error("CodeMirror CDN failed");
                 App.editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
                     mode: 'javascript',
                     lineNumbers: true,
                     theme: 'default',
                     autoCloseTags: true,
-                    autoCloseBrackets: true, // Fixed: Simplified to ensure it works
+                    autoCloseBrackets: true,
                     matchBrackets: true,
                     matchTags: { bothTags: true },
                     styleActiveLine: true,
@@ -694,7 +716,7 @@
 
                 // CM5 -> Yjs Binding
                 App.editor.on('change', (instance, change) => {
-                    if (isApplyingRemote) return;
+                    if (isApplyingRemote || !ydoc) return;
                     
                     ydoc.transact(() => {
                         const start = instance.indexFromPos(change.from);
@@ -739,34 +761,38 @@
                 }
                 App.editor.setValue(ytext.toString());
 
-                // Yjs -> CM5 Binding
-                ytext.observe(event => {
-                    if (event.transaction.origin === 'local') return;
-                    isApplyingRemote = true;
-                    let offset = 0;
-                    App.editor.operation(() => {
-                        event.delta.forEach(d => {
-                            if (d.retain) offset += d.retain;
-                            if (d.insert) {
-                                const pos = App.editor.posFromIndex(offset);
-                                App.editor.replaceRange(d.insert, pos);
-                                offset += d.insert.length;
-                            } else if (d.delete) {
-                                const start = App.editor.posFromIndex(offset);
-                                const end = App.editor.posFromIndex(offset + d.delete);
-                                App.editor.replaceRange('', start, end);
-                            }
+                if (ytext.observe) {
+                    // Yjs -> CM5 Binding
+                    ytext.observe(event => {
+                        if (event.transaction.origin === 'local') return;
+                        isApplyingRemote = true;
+                        let offset = 0;
+                        App.editor.operation(() => {
+                            event.delta.forEach(d => {
+                                if (d.retain) offset += d.retain;
+                                if (d.insert) {
+                                    const pos = App.editor.posFromIndex(offset);
+                                    App.editor.replaceRange(d.insert, pos);
+                                    offset += d.insert.length;
+                                } else if (d.delete) {
+                                    const start = App.editor.posFromIndex(offset);
+                                    const end = App.editor.posFromIndex(offset + d.delete);
+                                    App.editor.replaceRange('', start, end);
+                                }
+                            });
                         });
+                        isApplyingRemote = false;
                     });
-                    isApplyingRemote = false;
-                });
+                }
 
-                // Yjs -> PeerJS Sync
-                ydoc.on('update', (update, origin) => {
-                    if (origin !== 'remote' && P2P.conn && P2P.conn.open) {
-                        P2P.conn.send({ t: 'y_update', bin: update });
-                    }
-                });
+                if (ydoc.on) {
+                    // Yjs -> PeerJS Sync
+                    ydoc.on('update', (update, origin) => {
+                        if (origin !== 'remote' && P2P.conn && P2P.conn.open) {
+                            P2P.conn.send({ t: 'y_update', bin: update });
+                        }
+                    });
+                }
             },
 
             bindMouseEvents: () => {
@@ -936,11 +962,12 @@
             },
 
             toggleExtPanel: (show = true) => {
+                const panel = document.getElementById('ext-panel');
                 if (window.gsap) {
-                    if (show) gsap.to('#ext-panel', {right: 0, duration: 0.3});
-                    else gsap.to('#ext-panel', {right: -280, duration: 0.3});
+                    if (show) gsap.to(panel, {right: 0, duration: 0.3});
+                    else gsap.to(panel, {right: -280, duration: 0.3});
                 } else {
-                    document.getElementById('ext-panel').style.right = show ? '0px' : '-280px';
+                    panel.style.right = show ? '0px' : '-280px';
                 }
             },
 
@@ -974,10 +1001,14 @@
                     item.className = 'timeline-item';
                     item.innerText = new Date(s.ts).toLocaleTimeString();
                     item.onclick = () => {
-                        ydoc.transact(() => {
-                            ytext.delete(0, ytext.toString().length);
-                            ytext.insert(0, s.code);
-                        }, 'local');
+                        if (ydoc && ytext) {
+                            ydoc.transact(() => {
+                                ytext.delete(0, ytext.toString().length);
+                                ytext.insert(0, s.code);
+                            }, 'local');
+                        } else {
+                            App.editor.setValue(s.code);
+                        }
                         Utils.toast('Snapshot Restored');
                     };
                     bar.appendChild(item);
@@ -1046,10 +1077,14 @@
                 document.getElementById('lang-select').value = proj.lang;
                 App.editor.setOption('mode', proj.lang);
                 
-                ydoc.transact(() => {
-                    ytext.delete(0, ytext.toString().length);
-                    ytext.insert(0, proj.code);
-                }, 'local');
+                if (ydoc && ytext) {
+                    ydoc.transact(() => {
+                        ytext.delete(0, ytext.toString().length);
+                        ytext.insert(0, proj.code);
+                    }, 'local');
+                } else {
+                    App.editor.setValue(proj.code);
+                }
                 
                 App.showView('editor');
                 App.changeLang(false);
@@ -1141,6 +1176,7 @@
             audioCtx: null, analyser: null, audioLoop: null,
 
             init: () => {
+                if (!window.Peer) return; // PeerJS failed to load
                 P2P.myId = localStorage.getItem('codesathee_peer_id');
                 if (!P2P.myId) {
                     P2P.myId = 'CS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -1190,8 +1226,10 @@
                     P2P.conn.send({ t: 'state', lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
                     
                     // Send Yjs CRDT Initial State
-                    const stateUpdate = Y.encodeStateAsUpdate(ydoc);
-                    P2P.conn.send({ t: 'sync_req', bin: stateUpdate });
+                    if (ydoc) {
+                        const stateUpdate = Y.encodeStateAsUpdate(ydoc);
+                        P2P.conn.send({ t: 'sync_req', bin: stateUpdate });
+                    }
                 });
 
                 P2P.conn.on('data', P2P.handleData);
@@ -1214,9 +1252,9 @@
             handleData: (d) => {
                 if (d.t === 'profile') {
                     App.updatePeerCursor(undefined, undefined, d.username);
-                } else if (d.t === 'sync_req') {
+                } else if (d.t === 'sync_req' && ydoc) {
                     Y.applyUpdate(ydoc, new Uint8Array(d.bin), 'remote');
-                } else if (d.t === 'y_update') {
+                } else if (d.t === 'y_update' && ydoc) {
                     Y.applyUpdate(ydoc, new Uint8Array(d.bin), 'remote');
                 } else if (d.t === 'state') {
                     App.applyState(d.lang, d.filename);

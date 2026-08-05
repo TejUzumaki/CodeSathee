@@ -28,11 +28,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
-    <!-- Emmet & Yjs & Pyodide & PeerJS -->
+    <!-- Emmet & Yjs & Y-Codemirror & Pyodide & PeerJS & Beautifier -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/emmet-core/0.1.5/emmet.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/yjs@13.6.18/dist/yjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/y-codemirror@2.1.1/y-codemirror.min.js"></script>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautifier.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-html.min.js"></script>
 
     <style>
         :root {
@@ -148,6 +153,11 @@
         
         select.lang-select { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 4px 8px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); cursor: pointer; }
         
+        /* Quick Insert Bar */
+        #quick-insert-bar { display: flex; gap: 8px; padding: 8px 20px; background: var(--bg-panel); border-bottom: 1px solid var(--border-grey); overflow-x: auto; white-space: nowrap; }
+        .qi-btn { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-muted); padding: 4px 10px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); flex-shrink: 0; }
+        .qi-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+
         /* Context-Aware Split Layout */
         #split-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         #split-wrapper.layout-horizontal { flex-direction: row; }
@@ -224,6 +234,10 @@
         .ext-item:hover { border-color: var(--accent-orange); background: var(--accent-dim); }
         .ext-item h4 { font-size: 0.8rem; margin-bottom: 4px; color: var(--text-white); }
         .ext-item p { font-size: 0.7rem; color: var(--text-muted); }
+        
+        .storage-meter { height: 4px; background: var(--border-grey); margin-top: 15px; position: relative; }
+        .storage-meter-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.3s; }
+        .storage-text { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; text-align: right; }
 
         /* Modals */
         .modal-overlay {
@@ -273,7 +287,9 @@
         #call-widget.speaking { box-shadow: 0 0 15px var(--success-green); }
         .call-dot { width: 8px; height: 8px; background: var(--success-green); border-radius: 50%; animation: pulse 1.5s infinite; }
         .call-info { font-size: 0.75rem; color: var(--text-white); }
-        .call-end { background: none; border: none; color: var(--danger-red); cursor: pointer; font-size: 1rem; padding: 0 5px; }
+        .call-btn { background: none; border: none; cursor: pointer; padding: 0 5px; display: flex; align-items: center; }
+        .call-btn.mute { color: var(--text-muted); }
+        .call-btn.end { color: var(--danger-red); }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-black); }
@@ -380,6 +396,19 @@
                             <option value="xml">XML</option>
                         </select>
                     </div>
+                    
+                    <div id="quick-insert-bar">
+                        <button class="qi-btn" onclick="App.quickInsert('()')">()</button>
+                        <button class="qi-btn" onclick="App.quickInsert('{}')">{}</button>
+                        <button class="qi-btn" onclick="App.quickInsert('[]')">[]</button>
+                        <button class="qi-btn" onclick="App.quickInsert('=>')">=&gt;</button>
+                        <button class="qi-btn" onclick="App.quickInsert('===')">===</button>
+                        <button class="qi-btn" onclick="App.quickInsert('console.log()')">log</button>
+                        <button class="qi-btn" onclick="App.quickInsert('function ')">func</button>
+                        <button class="qi-btn" onclick="App.quickInsert('return ')">ret</button>
+                        <button class="qi-btn" onclick="App.quickInsert('// TODO: ')">todo</button>
+                    </div>
+                    
                     <textarea id="code-editor"></textarea>
                 </div>
                 
@@ -403,6 +432,11 @@
                     <button class="ext-close" onclick="App.toggleExtPanel(false)">&times;</button>
                 </div>
                 <div class="ext-list" id="ext-list"></div>
+                <div style="padding: 15px; border-top: 1px solid var(--border-grey);">
+                    <div class="ext-title" style="margin-bottom: 10px;">Local Storage</div>
+                    <div class="storage-meter"><div class="storage-meter-fill" id="storage-fill"></div></div>
+                    <div class="storage-text" id="storage-text">0% Used</div>
+                </div>
             </div>
         </main>
 
@@ -413,7 +447,12 @@
         <div id="call-widget">
             <div class="call-dot"></div>
             <div class="call-info">LIVE <span id="call-timer">00:00</span></div>
-            <button class="call-end" onclick="P2P.endCall()">&times;</button>
+            <button class="call-btn mute" id="btn-mute" onclick="P2P.toggleMute()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+            </button>
+            <button class="call-btn end" onclick="P2P.endCall()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </button>
         </div>
     </div>
 
@@ -481,7 +520,8 @@
 
     <script>
         const safeSetItem = (key, val) => {
-            try { localStorage.setItem(key, val); } catch (e) { Utils.toast('Local Storage Full! Purge data.', 'error'); }
+            try { localStorage.setItem(key, val); App.updateStorageMeter(); } 
+            catch (e) { Utils.toast('Local Storage Full! Purge data.', 'error'); }
         };
 
         const Utils = {
@@ -511,7 +551,10 @@
                 observe: () => {} 
             };
         }
-        let isApplyingRemote = false;
+
+        // Base64 Helpers for WebRTC Binary Sync
+        const toB64 = (u8) => btoa(String.fromCharCode.apply(null, u8));
+        const fromB64 = (b64) => new Uint8Array(atob(b64).split('').map(c => c.charCodeAt(0)));
 
         const App = {
             editor: null,
@@ -544,6 +587,7 @@
                     App.initGutterDrag();
                     App.changeLang(false);
                     App.renderTimeline();
+                    App.updateStorageMeter();
                 } catch (err) {
                     console.error("Initialization Error:", err);
                     Utils.toast('System initialization error: ' + err.message, 'error');
@@ -674,25 +718,33 @@
                                 cm.replaceSelection("  ", "end");
                             }
                         },
-                        "Enter": "newlineAndIndentContinueComment",
+                        "Enter": (cm) => {
+                            const cursor = cm.getCursor();
+                            const line = cm.getLine(cursor.line);
+                            // Auto-format HTML tags on Enter
+                            if (cm.getOption("mode") === "htmlmixed" && /<[a-zA-Z][^>]*>$/.test(line)) {
+                                const tagMatch = line.match(/<([a-zA-Z][^>]*)>$/);
+                                if (tagMatch) {
+                                    const tagName = tagMatch[1].split(' ')[0];
+                                    cm.replaceRange(`\n  \n</${tagName}>`, {line: cursor.line, ch: line.length}, {line: cursor.line, ch: line.length});
+                                    cm.setCursor({line: cursor.line + 1, ch: 2});
+                                    return;
+                                }
+                            }
+                            cm.replaceSelection("\n", "end");
+                            const prevIndent = cm.getLine(cursor.line).match(/^\s*/)[0];
+                            cm.replaceSelection(prevIndent);
+                        },
                         "Alt-Up": "swapLineUp",
                         "Alt-Down": "swapLineDown"
                     }
                 });
 
-                App.editor.on('change', (instance, change) => {
-                    if (isApplyingRemote) return;
-                    ydoc.transact(() => {
-                        const start = instance.indexFromPos(change.from);
-                        if (change.removed.length > 0) {
-                            let delLen = 0;
-                            change.removed.forEach(line => delLen += line.length);
-                            delLen += change.removed.length - 1;
-                            ytext.delete(start, delLen);
-                        }
-                        if (change.text.length > 0) ytext.insert(start, change.text.join('\n'));
-                    }, 'local');
+                // Official Yjs CodeMirror Binding
+                const yUndoManager = new Y.UndoManager(ytext);
+                new CodemirrorBinding(ytext, App.editor, yUndoManager);
 
+                App.editor.on('change', (instance) => {
                     clearTimeout(App.saveTimer);
                     document.getElementById('save-status').innerText = 'TYPING...';
                     App.saveTimer = setTimeout(() => {
@@ -715,32 +767,24 @@
 
                 const savedCode = localStorage.getItem('codesathee_active_code') || '// Start coding...\n';
                 if (ytext.toString() === '') ytext.insert(0, savedCode);
-                App.editor.setValue(ytext.toString());
-
-                ytext.observe(event => {
-                    if (event.transaction.origin === 'local') return;
-                    isApplyingRemote = true;
-                    let offset = 0;
-                    App.editor.operation(() => {
-                        event.delta.forEach(d => {
-                            if (d.retain) offset += d.retain;
-                            if (d.insert) {
-                                const pos = App.editor.posFromIndex(offset);
-                                App.editor.replaceRange(d.insert, pos);
-                                offset += d.insert.length;
-                            } else if (d.delete) {
-                                const start = App.editor.posFromIndex(offset);
-                                const end = App.editor.posFromIndex(offset + d.delete);
-                                App.editor.replaceRange('', start, end);
-                            }
-                        });
-                    });
-                    isApplyingRemote = false;
-                });
 
                 ydoc.on('update', (update, origin) => {
-                    if (origin !== 'remote' && P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'y_update', bin: update });
+                    if (origin !== 'remote' && P2P.conn && P2P.conn.open) {
+                        const b64 = toB64(update);
+                        P2P.conn.send({ t: 'y_update', bin: b64 });
+                    }
                 });
+            },
+
+            quickInsert: (text) => {
+                if (!App.editor) return;
+                App.editor.replaceSelection(text);
+                App.editor.focus();
+                // Move cursor back inside parentheses if applicable
+                if (text.endsWith('()') || text.endsWith('[]') || text.endsWith('{}')) {
+                    const cursor = App.editor.getCursor();
+                    App.editor.setCursor({line: cursor.line, ch: cursor.ch - 1});
+                }
             },
 
             bindMouseEvents: () => {
@@ -859,6 +903,7 @@
 
             initExtensions: () => {
                 const extensions = [
+                    { name: 'Format Code', desc: 'Auto-beautify JS/HTML/CSS', action: () => App.extAction('format') },
                     { name: 'Format JSON', desc: 'Beautify selected JSON', action: () => App.extAction('json') },
                     { name: 'Insert UUID', desc: 'Generate v4 UUID', action: () => App.extAction('uuid') },
                     { name: 'Base64 Encode', desc: 'Encode selected text', action: () => App.extAction('b64_enc') },
@@ -878,9 +923,18 @@
 
             extAction: (type) => {
                 const text = App.editor.getSelection();
-                if (!text && !['uuid'].includes(type)) return Utils.toast('Select text first', 'error');
+                if (!text && !['uuid', 'format'].includes(type)) return Utils.toast('Select text first', 'error');
                 try {
                     switch(type) {
+                        case 'format': 
+                            const lang = document.getElementById('lang-select').value;
+                            const code = App.editor.getValue();
+                            let formatted;
+                            if (lang === 'htmlmixed') formatted = html_beautify(code);
+                            else if (lang === 'css') formatted = css_beautify(code);
+                            else formatted = js_beautify(code);
+                            App.editor.setValue(formatted);
+                            break;
                         case 'json': App.editor.replaceSelection(JSON.stringify(JSON.parse(text), null, 2)); break;
                         case 'uuid': App.editor.replaceSelection(crypto.randomUUID()); break;
                         case 'b64_enc': App.editor.replaceSelection(btoa(text)); break;
@@ -893,6 +947,15 @@
             toggleExtPanel: (show = true) => {
                 const panel = document.getElementById('ext-panel');
                 panel.style.right = show ? '0px' : '-280px';
+                if (show) App.updateStorageMeter();
+            },
+
+            updateStorageMeter: () => {
+                let total = 0;
+                for (let x in localStorage) total += ((localStorage[x].length || 0) + (x.length || 0)) * 2;
+                const percentage = Math.min(100, (total / (5 * 1024 * 1024)) * 100);
+                document.getElementById('storage-fill').style.width = percentage + '%';
+                document.getElementById('storage-text').innerText = percentage.toFixed(2) + '% Used';
             },
 
             openModal: (id) => {
@@ -1067,7 +1130,7 @@
 
         const P2P = {
             peer: null, conn: null, call: null, localStream: null, myId: null, callTimer: null, callSeconds: 0,
-            audioCtx: null, analyser: null, audioLoop: null,
+            audioCtx: null, analyser: null, audioLoop: null, isMuted: false,
 
             init: () => {
                 if (!window.Peer) return;
@@ -1112,7 +1175,7 @@
                     P2P.conn.send({ t: 'profile', username: username });
                     P2P.conn.send({ t: 'state', lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
                     const stateUpdate = Y.encodeStateAsUpdate(ydoc);
-                    P2P.conn.send({ t: 'sync_req', bin: stateUpdate });
+                    P2P.conn.send({ t: 'sync_req', bin: toB64(stateUpdate) });
                 });
 
                 P2P.conn.on('data', P2P.handleData);
@@ -1131,8 +1194,8 @@
 
             handleData: (d) => {
                 if (d.t === 'profile') App.updatePeerCursor(undefined, undefined, d.username);
-                else if (d.t === 'sync_req') Y.applyUpdate(ydoc, new Uint8Array(d.bin), 'remote');
-                else if (d.t === 'y_update') Y.applyUpdate(ydoc, new Uint8Array(d.bin), 'remote');
+                else if (d.t === 'sync_req') Y.applyUpdate(ydoc, fromB64(d.bin), 'remote');
+                else if (d.t === 'y_update') Y.applyUpdate(ydoc, fromB64(d.bin), 'remote');
                 else if (d.t === 'state') App.applyState(d.lang, d.filename);
                 else if (d.t === 'cursor') {
                     const peerName = document.getElementById('remote-mouse').getAttribute('data-name');
@@ -1151,6 +1214,7 @@
                 navigator.mediaDevices.getUserMedia({ audio: true, video: false })
                     .then((stream) => {
                         P2P.localStream = stream;
+                        P2P.isMuted = false;
                         P2P.call = P2P.peer.call(P2P.conn.peer, stream);
                         P2P.call.on('stream', (remoteStream) => {
                             const audio = new Audio(); audio.srcObject = remoteStream; audio.play();
@@ -1166,6 +1230,7 @@
                 navigator.mediaDevices.getUserMedia({ audio: true, video: false })
                     .then((stream) => {
                         P2P.localStream = stream;
+                        P2P.isMuted = false;
                         P2P.call.answer(stream);
                         P2P.call.on('stream', (remoteStream) => {
                             const audio = new Audio(); audio.srcObject = remoteStream; audio.play();
@@ -1174,6 +1239,14 @@
                         });
                         P2P.call.on('close', P2P.endCall);
                     }).catch(() => Utils.toast('Mic Access Denied', 'error'));
+            },
+
+            toggleMute: () => {
+                if (!P2P.localStream) return;
+                P2P.isMuted = !P2P.isMuted;
+                P2P.localStream.getAudioTracks().forEach(track => track.enabled = !P2P.isMuted);
+                const btn = document.getElementById('btn-mute');
+                btn.style.color = P2P.isMuted ? 'var(--danger-red)' : 'var(--text-muted)';
             },
 
             setupVAD: (stream) => {
@@ -1187,7 +1260,7 @@
                     P2P.audioLoop = setInterval(() => {
                         P2P.analyser.getByteFrequencyData(data);
                         const avg = data.reduce((a, b) => a + b) / data.length;
-                        if (avg > 20) document.getElementById('call-widget').classList.add('speaking');
+                        if (avg > 20 && !P2P.isMuted) document.getElementById('call-widget').classList.add('speaking');
                         else document.getElementById('call-widget').classList.remove('speaking');
                     }, 100);
                 } catch(e) { console.error("VAD Error", e); }

@@ -66,6 +66,7 @@
         #boot-screen {
             position: fixed; inset: 0; background: var(--bg-black); z-index: 9999;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
         }
         #boot-screen::before {
             content: ''; position: absolute; inset: 0; 
@@ -130,6 +131,8 @@
         .nav-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
         .nav-btn.active { background: var(--accent-orange); color: var(--bg-black); border-color: var(--accent-orange); }
         .nav-btn.danger { border-color: var(--danger-red); color: var(--danger-red); }
+        .nav-btn.run-btn { background: var(--accent-orange); color: var(--bg-black); border: none; font-weight: 700; }
+        .nav-btn.run-btn:hover { background: #ff8a5c; color: var(--bg-black); }
 
         .status-pill { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; padding: 0 5px; }
         .status-dot { width: 8px; height: 8px; background: var(--text-muted); border-radius: 50%; }
@@ -153,12 +156,21 @@
         /* Mobile Stack Fix */
         @media (max-width: 768px) {
             #split-wrapper.layout-horizontal { flex-direction: column; }
-            #editor-pane, #output-pane { height: 50%; }
+            #editor-pane, #output-pane { height: 50%; flex: 1 !important; }
+            #split-gutter { display: none !important; }
         }
         
         #editor-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); overflow: hidden; min-width: 0; min-height: 0; }
-        .layout-horizontal #editor-pane { border-right: 1px solid var(--border-grey); }
-        .layout-vertical #editor-pane { border-bottom: 1px solid var(--border-grey); }
+        #output-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-black); overflow: hidden; min-width: 0; min-height: 0; }
+        
+        /* Resizable Gutter */
+        #split-gutter { background: var(--border-grey); position: relative; flex-shrink: 0; display: none; z-index: 10; }
+        #split-gutter::before { content: ''; position: absolute; background: var(--text-muted); border-radius: 2px; transition: background 0.2s; }
+        #split-wrapper.layout-horizontal #split-gutter { width: 4px; height: 100%; cursor: col-resize; display: block; }
+        #split-wrapper.layout-horizontal #split-gutter::before { top: 50%; left: 0; transform: translateY(-50%); width: 100%; height: 40px; }
+        #split-wrapper.layout-vertical #split-gutter { height: 4px; width: 100%; cursor: row-resize; display: block; }
+        #split-wrapper.layout-vertical #split-gutter::before { left: 50%; top: 0; transform: translateX(-50%); height: 100%; width: 40px; }
+        #split-gutter:hover::before { background: var(--accent-orange); }
         
         /* CodeMirror Custom Theme */
         .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; color: var(--text-white) !important; line-height: 1.5 !important; }
@@ -189,7 +201,6 @@
         .remote-mouse::after { content: attr(data-name); position: absolute; top: 15px; left: 15px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
 
         /* Preview & Terminal Pane */
-        #output-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-black); overflow: hidden; min-width: 0; min-height: 0; }
         .output-tabs { display: flex; border-bottom: 1px solid var(--border-grey); background: var(--bg-panel); }
         .tab-btn { background: none; border: none; color: var(--text-muted); padding: 10px 20px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; text-transform: uppercase; border-bottom: 2px solid transparent; }
         .tab-btn.active { color: var(--accent-orange); border-bottom-color: var(--accent-orange); }
@@ -260,7 +271,7 @@
         .toast.error { border-left-color: var(--danger-red); }
         .toast.success { border-left-color: var(--success-green); }
 
-        /* Call Widget - Moved left to avoid scrollbar overlap */
+        /* Call Widget */
         #call-widget { position: fixed; bottom: 20px; left: 20px; background: var(--bg-panel); border: 1px solid var(--success-green); padding: 10px 15px; display: none; align-items: center; gap: 10px; z-index: 50; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); transition: box-shadow 0.1s; }
         #call-widget.speaking { box-shadow: 0 0 15px var(--success-green); }
         .call-dot { width: 8px; height: 8px; background: var(--success-green); border-radius: 50%; animation: pulse 1.5s infinite; }
@@ -274,13 +285,13 @@
 </head>
 <body>
 
-    <div id="boot-screen" style="display: none !important;">
+    <div id="boot-screen">
         <div class="boot-text">Initializing System</div>
         <div class="boot-loader"></div>
     </div>
 
     <!-- Landing View -->
-    <div id="landing-view" class="view active">
+    <div id="landing-view" class="view">
         <div class="landing-container">
             <div class="landing-hero">
                 <h1>CODE<span>SATHEE</span></h1>
@@ -291,7 +302,7 @@
                 </div>
 
                 <div class="cta-group">
-                    <button class="btn btn-primary" onclick="App.startNewProject()">START CODING ALONE</button>
+                    <button class="btn btn-primary" id="btn-start" onclick="App.startNewProject()">START CODING ALONE</button>
                     <button class="btn" onclick="App.openModal('modal-connect')">CONNECT P2P</button>
                 </div>
             </div>
@@ -340,6 +351,10 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                     VOICE
                 </button>
+                <button class="nav-btn run-btn" onclick="App.runCode()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    RUN
+                </button>
                 <button class="nav-btn" id="btn-save" onclick="App.saveProject(true)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                     SAVE
@@ -370,7 +385,9 @@
                     </div>
                     <textarea id="code-editor"></textarea>
                 </div>
-
+                
+                <div id="split-gutter"></div>
+                
                 <div id="output-pane">
                     <div class="output-tabs" id="output-tabs">
                         <button class="tab-btn active" onclick="App.switchTab('preview')">PREVIEW</button>
@@ -466,10 +483,9 @@
     <div id="toast-container"></div>
 
     <script>
-        // Safe LocalStorage Helper
+        // --- Core Initialization (Decoupled from UI) ---
         const safeSetItem = (key, val) => {
-            try { localStorage.setItem(key, val); }
-            catch (e) { Utils.toast('Local Storage Full! Purge data.', 'error'); }
+            try { localStorage.setItem(key, val); } catch (e) { Utils.toast('Local Storage Full! Purge data.', 'error'); }
         };
 
         const Utils = {
@@ -479,8 +495,13 @@
                 toast.className = `toast ${type}`;
                 toast.innerText = message;
                 container.appendChild(toast);
-                gsap.fromTo(toast, {x: 100, opacity: 0}, {x: 0, opacity: 1, duration: 0.3});
-                setTimeout(() => { gsap.to(toast, {x: 100, opacity: 0, duration: 0.3, onComplete: () => toast.remove()}); }, 3000);
+                if (window.gsap) {
+                    gsap.fromTo(toast, {x: 100, opacity: 0}, {x: 0, opacity: 1, duration: 0.3});
+                    setTimeout(() => { gsap.to(toast, {x: 100, opacity: 0, duration: 0.3, onComplete: () => toast.remove()}); }, 3000);
+                } else {
+                    toast.style.opacity = '1';
+                    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+                }
             }
         };
 
@@ -499,38 +520,98 @@
             peerBookmark: null,
             peerCursorTimeout: null,
             lastMouseSend: 0,
+            saveTimer: null,
+            previewTimer: null,
             
             init: () => {
-                gsap.to('#boot-loader::after', {width: '100%', duration: 1.5, ease: 'power2.inOut'});
+                // 1. Synchronous Core Logic
+                App.initEditor();
+                App.initExtensions();
+                App.initUsername();
+                P2P.init();
+                App.renderProjects();
+                App.bindMouseEvents();
+                App.initGutterDrag();
+                App.changeLang(false);
+                App.renderTimeline();
+
+                // 2. Visual Boot Screen Fade (Completely Decoupled)
+                const bootScreen = document.getElementById('boot-screen');
                 setTimeout(() => {
-                    gsap.to('#boot-screen', {opacity: 0, duration: 0.5, onComplete: () => {
-                        document.getElementById('boot-screen').style.display = 'none';
-                        App.initEditor();
-                        App.initExtensions();
-                        App.initUsername();
-                        P2P.init();
-                        App.renderProjects();
-                        App.showView('landing');
-                        App.bindMouseEvents();
-                        App.changeLang(false); // Set initial layout
-                    }});
+                    if (window.gsap) {
+                        gsap.to(bootScreen, { opacity: 0, duration: 0.5, onComplete: () => { bootScreen.style.display = 'none'; } });
+                    } else {
+                        bootScreen.style.opacity = '0';
+                        setTimeout(() => { bootScreen.style.display = 'none'; }, 500);
+                    }
                 }, 1500);
             },
 
             initUsername: () => {
                 const name = localStorage.getItem('codesathee_username') || 'USER-' + Math.floor(Math.random() * 9999);
-                document.getElementById('username-input').value = name;
-                document.getElementById('username-input').addEventListener('input', (e) => {
-                    localStorage.setItem('codesathee_username', e.target.value);
-                    document.getElementById('remote-mouse').setAttribute('data-name', e.target.value.toUpperCase());
-                    if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'profile', username: e.target.value });
-                });
+                const input = document.getElementById('username-input');
+                if (input) {
+                    input.value = name;
+                    input.addEventListener('input', (e) => {
+                        localStorage.setItem('codesathee_username', e.target.value);
+                        document.getElementById('remote-mouse').setAttribute('data-name', e.target.value.toUpperCase());
+                        if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'profile', username: e.target.value });
+                    });
+                }
                 document.getElementById('remote-mouse').setAttribute('data-name', name.toUpperCase());
             },
 
+            initGutterDrag: () => {
+                const gutter = document.getElementById('split-gutter');
+                let isDragging = false;
+                
+                const startDrag = (e) => {
+                    isDragging = true;
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                };
+                
+                const doDrag = (e) => {
+                    if (!isDragging) return;
+                    const wrapper = document.getElementById('split-wrapper');
+                    const rect = wrapper.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    
+                    const editorPane = document.getElementById('editor-pane');
+                    const outputPane = document.getElementById('output-pane');
+                    
+                    if (wrapper.classList.contains('layout-horizontal')) {
+                        const percentage = ((clientX - rect.left) / rect.width) * 100;
+                        if (percentage > 15 && percentage < 85) {
+                            editorPane.style.flex = `0 0 ${percentage}%`;
+                            outputPane.style.flex = `1 1 ${100 - percentage}%`;
+                        }
+                    } else {
+                        const percentage = ((clientY - rect.top) / rect.height) * 100;
+                        if (percentage > 15 && percentage < 85) {
+                            editorPane.style.flex = `0 0 ${percentage}%`;
+                            outputPane.style.flex = `1 1 ${100 - percentage}%`;
+                        }
+                    }
+                    if (App.editor) App.editor.refresh();
+                };
+                
+                const stopDrag = () => {
+                    isDragging = false;
+                    document.body.style.userSelect = 'auto';
+                };
+                
+                gutter.addEventListener('mousedown', startDrag);
+                document.addEventListener('mousemove', doDrag);
+                document.addEventListener('mouseup', stopDrag);
+                gutter.addEventListener('touchstart', startDrag, { passive: false });
+                document.addEventListener('touchmove', doDrag, { passive: false });
+                document.addEventListener('touchend', stopDrag);
+            },
+
             requestWakeLock: async () => {
-                try { App.wakeLock = await navigator.wakeLock.request('screen'); } 
-                catch (err) {}
+                try { App.wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
             },
 
             showView: (viewName) => {
@@ -573,7 +654,7 @@
                     lineNumbers: true,
                     theme: 'default',
                     autoCloseTags: true,
-                    autoCloseBrackets: { explodeBrackets: true, explodeStrings: true },
+                    autoCloseBrackets: true, // Fixed: Simplified to ensure it works
                     matchBrackets: true,
                     matchTags: { bothTags: true },
                     styleActiveLine: true,
@@ -732,6 +813,10 @@
                     tabs.children[1].style.display = 'none';
                 }
 
+                // Reset manual flex sizes
+                document.getElementById('editor-pane').style.flex = '1';
+                document.getElementById('output-pane').style.flex = '1';
+
                 if (broadcast && P2P.conn && P2P.conn.open) {
                     P2P.conn.send({ t: 'state', lang: lang, filename: document.getElementById('filename').value });
                 }
@@ -818,7 +903,6 @@
 
             initExtensions: () => {
                 const extensions = [
-                    { name: 'Run Code', desc: 'Execute JS/Python', action: () => App.runCode() },
                     { name: 'Format JSON', desc: 'Beautify selected JSON', action: () => App.extAction('json') },
                     { name: 'Insert UUID', desc: 'Generate v4 UUID', action: () => App.extAction('uuid') },
                     { name: 'Base64 Encode', desc: 'Encode selected text', action: () => App.extAction('b64_enc') },
@@ -852,8 +936,12 @@
             },
 
             toggleExtPanel: (show = true) => {
-                if (show) gsap.to('#ext-panel', {right: 0, duration: 0.3});
-                else gsap.to('#ext-panel', {right: -280, duration: 0.3});
+                if (window.gsap) {
+                    if (show) gsap.to('#ext-panel', {right: 0, duration: 0.3});
+                    else gsap.to('#ext-panel', {right: -280, duration: 0.3});
+                } else {
+                    document.getElementById('ext-panel').style.right = show ? '0px' : '-280px';
+                }
             },
 
             openModal: (id) => {
@@ -1058,7 +1146,9 @@
                     P2P.myId = 'CS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
                     safeSetItem('codesathee_peer_id', P2P.myId);
                 }
-                document.getElementById('my-peer-id').value = P2P.myId;
+                const peerInput = document.getElementById('my-peer-id');
+                if (peerInput) peerInput.value = P2P.myId;
+                
                 P2P.peer = new Peer(P2P.myId, { debug: 0 });
 
                 P2P.peer.on('open', () => {
@@ -1087,6 +1177,11 @@
                     document.getElementById('net-status').classList.add('online');
                     document.getElementById('net-text').innerText = 'CONNECTED';
                     document.getElementById('btn-call').style.display = 'flex';
+                    
+                    // Update landing page button text
+                    const startBtn = document.getElementById('btn-start');
+                    if (startBtn) startBtn.innerText = "LET'S START CODING TOGETHER";
+                    
                     Utils.toast('Peer Linked', 'success');
                     App.addRecent(P2P.conn.peer);
                     
@@ -1105,6 +1200,11 @@
                     document.getElementById('net-text').innerText = 'DISCONNECTED';
                     document.getElementById('btn-call').style.display = 'none';
                     document.getElementById('remote-mouse').style.display = 'none';
+                    
+                    // Revert landing page button text
+                    const startBtn = document.getElementById('btn-start');
+                    if (startBtn) startBtn.innerText = 'START CODING ALONE';
+                    
                     if (App.peerBookmark) { App.peerBookmark.clear(); App.peerBookmark = null; }
                     document.getElementById('remote-mouse').setAttribute('data-name', 'PEER');
                     Utils.toast('Peer Disconnected', 'error');
@@ -1209,6 +1309,7 @@
             }
         };
 
+        // Start app immediately
         App.init();
     </script>
 </body>

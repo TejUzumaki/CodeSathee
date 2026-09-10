@@ -22,6 +22,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/diff-match-patch/1.0.5/diff-match-patch.min.js"></script>
 
     <style>
         :root {
@@ -271,8 +272,8 @@
             <div class="section-title">How The Tech Works</div>
             <div class="tech-grid">
                 <div class="tech-card">
-                    <h3>1. Raw WebRTC Sync</h3>
-                    <p>Direct P2P data channels. We sync the full document state on edits with strict debouncing to guarantee zero data loss without CRDT overhead.</p>
+                    <h3>1. Diff Sync Engine</h3>
+                    <p>Text differences are calculated and synced directly. Cursor positions are mapped to string indices to prevent teleporting during simultaneous edits.</p>
                 </div>
                 <div class="tech-card">
                     <h3>2. WebRTC Media</h3>
@@ -476,12 +477,35 @@
             }
         };
 
+        const dmp = new diff_match_patch();
+
+        // Pyodide Web Worker Setup
+        const pyWorkerCode = `
+            importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
+            let pyodide = null;
+            self.onmessage = async (e) => {
+                if (!pyodide) pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
+                if (e.data.type === 'run') {
+                    try {
+                        let stdout = '';
+                        pyodide.setStdout({ batched: (s) => stdout += s + '\\n' });
+                        pyodide.setStderr({ batched: (s) => stdout += 'ERROR: ' + s + '\\n' });
+                        await pyodide.runPythonAsync(e.data.code);
+                        self.postMessage({ type: 'result', data: stdout });
+                    } catch (err) {
+                        self.postMessage({ type: 'result', data: 'FATAL: ' + err.message });
+                    }
+                }
+            };
+        `;
+        const pyBlob = new Blob([pyWorkerCode], { type: 'application/javascript' });
+        const pyWorker = new Worker(URL.createObjectURL(pyBlob));
+
         const App = {
             editor: null,
             currentProjectId: null,
             wakeLock: null,
             activeTab: 'terminal',
-            pyodideReadyPromise: null,
             snapshots: [],
             peerBookmark: null,
             peerCursorTimeout: null,
@@ -489,6 +513,7 @@
             previewTimer: null,
             syncTimer: null,
             isApplyingRemote: false,
+            lastSyncedText: '',
             
             init: () => {
                 setTimeout(() => {
@@ -506,6 +531,7 @@
                     App.changeLang(false);
                     App.renderTimeline();
                     App.updateStorageMeter();
+                    App.bindPyWorker();
                 } catch (err) {
                     console.error("Initialization Error:", err);
                     Utils.toast('System initialization error: ' + err.message, 'error');
@@ -548,6 +574,7 @@
                 document.getElementById('filename').value = 'untitled.js';
                 document.getElementById('lang-select').value = 'javascript';
                 App.editor.setValue('// Start coding...\n');
+                App.lastSyncedText = App.editor.getValue();
                 App.snapshots = [];
                 App.renderTimeline();
                 App.showView('editor');
@@ -593,7 +620,15 @@
 
                     App.syncTimer = setTimeout(() => {
                         if (P2P.conn && P2P.conn.open) {
-                            P2P.conn.send({ t: 'code', val: instance.getValue() });
+                            const currentText = instance.getValue();
+                            const diff = dmp.diff_main(App.lastSyncedText, currentText);
+                            dmp.diff_cleanupSemantic(diff);
+                            const patches = dmp.patch_make(App.lastSyncedText, diff);
+                            const patchText = dmp.patch_toText(patches);
+                            if (patchText.length > 0) {
+                                P2P.conn.send({ t: 'patch', val: patchText });
+                                App.lastSyncedText = currentText;
+                            }
                         }
                     }, 300);
                 });
@@ -602,12 +637,23 @@
                     if (App.isApplyingRemote) return;
                     if (P2P.conn && P2P.conn.open) {
                         const cursor = instance.getCursor();
-                        P2P.conn.send({ t: 'cursor', line: cursor.line, ch: cursor.ch });
+                        const index = instance.indexFromPos(cursor);
+                        P2P.conn.send({ t: 'cursor', idx: index });
                     }
                 });
 
                 const savedCode = localStorage.getItem('codesathee_active_code') || '// Start coding...\n';
                 App.editor.setValue(savedCode);
+                App.lastSyncedText = savedCode;
+            },
+
+            bindPyWorker: () => {
+                pyWorker.onmessage = (e) => {
+                    const term = document.getElementById('terminal-output');
+                    if (e.data.type === 'result') {
+                        term.innerHTML += e.data.data || '<span class="term-info">// Execution finished.</span>';
+                    }
+                };
             },
 
             quickInsert: (text) => {
@@ -677,16 +723,8 @@
                 term.classList.add('active');
 
                 if (lang === 'python') {
-                    term.innerHTML = '<span class="term-info">Downloading Python WASM Runtime (lazy load)...</span>';
-                    try {
-                        await App.ensurePyodide();
-                        term.innerHTML += '<span class="term-info">Executing...</span>\n';
-                        let stdout = '';
-                        pyodide.setStdout({ batched: (s) => stdout += s + '\n' });
-                        pyodide.setStderr({ batched: (s) => stdout += 'ERROR: ' + s + '\n' });
-                        await pyodide.runPythonAsync(App.editor.getValue());
-                        term.innerHTML += stdout || '<span class="term-info">// Execution finished.</span>';
-                    } catch(e) { term.innerHTML += `<span class="term-error">${e.message}</span>`; }
+                    term.innerHTML = '<span class="term-info">Executing in Web Worker...</span>\n';
+                    pyWorker.postMessage({ type: 'run', code: App.editor.getValue() });
                 } else if (lang === 'javascript') {
                     const code = App.editor.getValue();
                     const logCapture = `
@@ -712,22 +750,6 @@
                 } else {
                     term.innerHTML = `<span class="term-info">// Execution not supported for ${lang}.</span>`;
                 }
-            },
-
-            ensurePyodide: () => {
-                if (!App.pyodideReadyPromise) {
-                    App.pyodideReadyPromise = new Promise((resolve, reject) => {
-                        if (window.loadPyodide) return resolve(window.loadPyodide());
-                        const script = document.createElement('script');
-                        script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js";
-                        script.onload = async () => {
-                            try { resolve(await loadPyodide()); } catch(e) { reject(e); }
-                        };
-                        script.onerror = reject;
-                        document.body.appendChild(script);
-                    });
-                }
-                return App.pyodideReadyPromise;
             },
 
             initExtensions: () => {
@@ -845,7 +867,11 @@
                 App.closeModal('modal-save');
                 Utils.toast('Project Saved');
                 document.getElementById('filename').value = name;
-                if (notifyPeer && P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'sys_event', action: 'save', name: name, lang: lang });
+                
+                // Sync Save State
+                if (notifyPeer && P2P.conn && P2P.conn.open) {
+                    P2P.conn.send({ t: 'sync_save', id: App.currentProjectId, name: name, lang: lang, code: code });
+                }
             },
 
             renderProjects: () => {
@@ -874,6 +900,7 @@
                 document.getElementById('lang-select').value = proj.lang;
                 App.editor.setOption('mode', proj.lang);
                 App.editor.setValue(proj.code);
+                App.lastSyncedText = proj.code;
                 App.showView('editor');
                 App.changeLang(false);
             },
@@ -927,20 +954,74 @@
                 App.updatePreview();
             },
 
-            applyRemoteCode: (code) => {
+            applyRemotePatch: (patchText) => {
                 if (!App.editor) return;
                 App.isApplyingRemote = true;
-                const cursor = App.editor.getCursor();
-                App.editor.setValue(code);
-                App.editor.setCursor(cursor);
+                
+                const currentText = App.editor.getValue();
+                const patches = dmp.patch_fromText(patchText);
+                const [newText, results] = dmp.patch_apply(patches, currentText);
+                
+                // Only apply if patches were successful
+                let changed = false;
+                for(let i=0; i<results.length; i++) {
+                    if(results[i]) changed = true;
+                }
+
+                if (changed) {
+                    const cursor = App.editor.getCursor();
+                    const currentSelection = App.editor.getSelection();
+                    
+                    // Find common prefix/suffix to preserve cursor exactly
+                    let start = 0;
+                    while (start < currentText.length && start < newText.length && currentText[start] === newText[start]) start++;
+                    let endOld = currentText.length - 1;
+                    let endNew = newText.length - 1;
+                    while (endOld >= start && endNew >= start && currentText[endOld] === newText[endNew]) {
+                        endOld--;
+                        endNew--;
+                    }
+                    
+                    const replaceStr = newText.substring(start, endNew + 1);
+                    const startPos = App.editor.posFromIndex(start);
+                    const endPos = App.editor.posFromIndex(endOld + 1);
+                    
+                    App.editor.replaceRange(replaceStr, startPos, endPos);
+                    App.lastSyncedText = App.editor.getValue();
+                    App.editor.setCursor(cursor);
+                }
+                
                 App.isApplyingRemote = false;
                 App.updatePreview();
             },
 
-            updatePeerCursor: (line, ch, name) => {
+            applyRemoteSave: (data) => {
+                App.currentProjectId = data.id;
+                document.getElementById('filename').value = data.name;
+                document.getElementById('lang-select').value = data.lang;
+                App.editor.setOption('mode', data.lang);
+                App.editor.setValue(data.code);
+                App.lastSyncedText = data.code;
+                
+                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                const idx = projects.findIndex(p => p.id === data.id);
+                if (idx > -1) { 
+                    projects[idx].name = data.name; 
+                    projects[idx].code = data.code; 
+                    projects[idx].lang = data.lang; 
+                } else {
+                    projects.push({ id: data.id, name: data.name, code: data.code, lang: data.lang });
+                }
+                safeSetItem('codesathee_projects', JSON.stringify(projects));
+                App.changeLang(false);
+                Utils.toast(`Peer saved project: ${data.name}`, 'success');
+            },
+
+            updatePeerCursor: (index, name) => {
                 if (!App.editor) return;
-                if (line !== undefined && ch !== undefined) {
+                if (index !== undefined) {
                     if (App.peerBookmark) App.peerBookmark.clear();
+                    const pos = App.editor.posFromIndex(index);
                     const cursorEl = document.createElement('span');
                     cursorEl.className = 'remote-cursor-widget';
                     const tagEl = document.createElement('span');
@@ -951,7 +1032,7 @@
                     clearTimeout(App.peerCursorTimeout);
                     App.peerCursorTimeout = setTimeout(() => tagEl.style.display = 'none', 2000);
                     try {
-                        App.peerBookmark = App.editor.setBookmark({line: line, ch: ch}, { widget: cursorEl, handleMouseEvents: false });
+                        App.peerBookmark = App.editor.setBookmark(pos, { widget: cursorEl, handleMouseEvents: false });
                     } catch(e) {}
                 }
             }
@@ -959,7 +1040,7 @@
 
         const P2P = {
             peer: null, conn: null, call: null, localStream: null, myId: null, callTimer: null, callSeconds: 0,
-            audioCtx: null, analyser: null, audioLoop: null, isMuted: false,
+            audioCtx: null, analyser: null, audioLoop: null, isMuted: false, heartbeatInterval: null, lastPongTime: 0,
 
             init: () => {
                 if (!window.Peer) return Utils.toast("WebRTC Engine failed to load.", "error");
@@ -979,8 +1060,7 @@
                 P2P.peer.on('call', (incomingCall) => { P2P.call = incomingCall; App.openModal('modal-call'); });
                 P2P.peer.on('error', (err) => { 
                     Utils.toast('P2P Error: ' + err.type, 'error'); 
-                    document.getElementById('net-status').classList.remove('online', 'connecting');
-                    document.getElementById('net-text').innerText = 'OFFLINE';
+                    P2P.handleDisconnect();
                 });
             },
 
@@ -1007,29 +1087,47 @@
                     const username = localStorage.getItem('codesathee_username') || 'PEER';
                     P2P.conn.send({ t: 'profile', username: username });
                     P2P.conn.send({ t: 'state', lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
-                    P2P.conn.send({ t: 'code', val: App.editor.getValue() });
+                    P2P.conn.send({ t: 'patch', val: dmp.patch_toText(dmp.patch_make('', App.editor.getValue())) });
+                    
+                    // Start Heartbeat
+                    P2P.lastPongTime = Date.now();
+                    P2P.heartbeatInterval = setInterval(() => {
+                        if (!P2P.conn || !P2P.conn.open) return;
+                        P2P.conn.send({ t: 'ping' });
+                        if (Date.now() - P2P.lastPongTime > 6000) {
+                            P2P.handleDisconnect();
+                        }
+                    }, 3000);
                 });
 
                 P2P.conn.on('data', P2P.handleData);
-                P2P.conn.on('close', () => {
-                    document.getElementById('net-status').classList.remove('online');
-                    document.getElementById('net-text').innerText = 'DISCONNECTED';
-                    document.getElementById('btn-call').style.display = 'none';
-                    const startBtn = document.getElementById('btn-start');
-                    if (startBtn) startBtn.innerText = 'START CODING ALONE';
-                    if (App.peerBookmark) { App.peerBookmark.clear(); App.peerBookmark = null; }
-                    Utils.toast('Peer Disconnected', 'error');
-                });
+                P2P.conn.on('close', () => P2P.handleDisconnect());
+                P2P.conn.on('error', () => P2P.handleDisconnect());
+            },
+
+            handleDisconnect: () => {
+                if (P2P.heartbeatInterval) clearInterval(P2P.heartbeatInterval);
+                document.getElementById('net-status').classList.remove('online', 'connecting');
+                document.getElementById('net-text').innerText = 'DISCONNECTED';
+                document.getElementById('btn-call').style.display = 'none';
+                const startBtn = document.getElementById('btn-start');
+                if (startBtn) startBtn.innerText = 'START CODING ALONE';
+                if (App.peerBookmark) { App.peerBookmark.clear(); App.peerBookmark = null; }
+                if (P2P.conn) P2P.conn.close();
+                P2P.endCall();
+                Utils.toast('Peer Disconnected', 'error');
             },
 
             handleData: (d) => {
-                if (d.t === 'profile') App.updatePeerCursor(undefined, undefined, d.username);
-                else if (d.t === 'code') App.applyRemoteCode(d.val);
+                if (d.t === 'ping') P2P.conn.send({ t: 'pong' });
+                else if (d.t === 'pong') P2P.lastPongTime = Date.now();
+                else if (d.t === 'profile') App.updatePeerCursor(undefined, d.username);
+                else if (d.t === 'patch') App.applyRemotePatch(d.val);
                 else if (d.t === 'state') App.applyState(d.lang, d.filename);
-                else if (d.t === 'cursor') App.updatePeerCursor(d.line, d.ch, null);
+                else if (d.t === 'cursor') App.updatePeerCursor(d.idx, null);
+                else if (d.t === 'sync_save') App.applyRemoteSave(d);
                 else if (d.t === 'sys_event') {
-                    if (d.action === 'save') Utils.toast(`Peer saved ${d.name}`, 'success');
-                    else if (d.action === 'delete') Utils.toast(`Peer deleted ${d.name}`, 'error');
+                    if (d.action === 'delete') Utils.toast(`Peer deleted ${d.name}`, 'error');
                 }
             },
 

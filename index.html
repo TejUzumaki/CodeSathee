@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CodeSathee // Tactical Dev Environment</title>
     
-    <!-- CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
@@ -15,26 +14,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
-    <!-- CodeMirror Addons -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchtags.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
-    <!-- Emmet & Yjs & Y-Codemirror & Pyodide & PeerJS & Beautifier -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/emmet-core/0.1.5/emmet.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/yjs@13.6.18/dist/yjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/y-codemirror@2.1.1/y-codemirror.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautifier.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-html.min.js"></script>
@@ -55,7 +39,7 @@
             --font-mono: 'JetBrains Mono', monospace;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 
         html, body { height: 100%; overflow: hidden; background: var(--bg-black); }
 
@@ -64,9 +48,10 @@
             color: var(--text-white);
             display: flex;
             flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        /* Boot Screen */
         #boot-screen {
             position: fixed; inset: 0; background: var(--bg-black); z-index: 9999;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -82,12 +67,10 @@
         .boot-loader::after { content: ''; position: absolute; top: 0; left: 0; width: 30%; height: 100%; background: var(--accent-orange); animation: loadBar 1.5s ease-in-out infinite; }
         @keyframes loadBar { 0% { left: -30%; } 100% { left: 100%; } }
 
-        /* Views */
         .view { display: none; flex-direction: column; height: 100vh; width: 100vw; }
         .view.active { display: flex; }
 
-        /* Landing View */
-        #landing-view { overflow-y: auto; padding: 40px 20px; }
+        #landing-view { overflow-y: auto; padding: 40px 20px; -webkit-overflow-scrolling: touch; }
         .landing-container { max-width: 800px; margin: 0 auto; width: 100%; }
         .landing-hero { text-align: center; margin-bottom: 60px; padding-top: 40px; }
         .landing-hero h1 { font-size: 2.5rem; margin-bottom: 15px; letter-spacing: -1px; }
@@ -100,7 +83,7 @@
         .user-input:focus { border-color: var(--accent-orange); }
 
         .section-title { font-size: 1.2rem; margin-bottom: 20px; border-left: 3px solid var(--accent-orange); padding-left: 12px; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
-        .section-title button { background: none; border: 1px solid var(--border-light); color: var(--danger-red); padding: 4px 8px; font-size: 0.7rem; cursor: pointer; font-family: var(--font-mono); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
+        .section-title button { background: none; border: 1px solid var(--border-light); color: var(--danger-red); padding: 4px 8px; font-size: 0.7rem; font-family: var(--font-mono); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
         
         .tech-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 60px; }
         @media (min-width: 768px) { .tech-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -110,34 +93,31 @@
 
         .projects-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 40px; }
         @media (min-width: 768px) { .projects-grid { grid-template-columns: repeat(2, 1fr); } }
-        .project-card { background: var(--bg-panel); border: 1px solid var(--border-grey); padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
-        .project-card:hover { border-color: var(--accent-orange); background: var(--accent-dim); }
+        .project-card { background: var(--bg-panel); border: 1px solid var(--border-grey); padding: 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+        .project-card:active { border-color: var(--accent-orange); background: var(--accent-dim); }
         .project-info h4 { font-size: 0.9rem; margin-bottom: 4px; }
         .project-info p { font-size: 0.7rem; color: var(--text-muted); }
-        .project-delete { background: none; border: none; color: var(--danger-red); cursor: pointer; padding: 5px; opacity: 0.5; font-size: 1.2rem; }
-        .project-delete:hover { opacity: 1; }
+        .project-delete { background: none; border: none; color: var(--danger-red); padding: 5px; opacity: 0.5; font-size: 1.2rem; }
+        .project-delete:active { opacity: 1; }
 
-        /* Editor View */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 20px; border-bottom: 1px solid var(--border-grey);
             background: var(--bg-panel); z-index: 10; flex-shrink: 0;
         }
-        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; cursor: pointer; background: none; border: none; color: var(--text-white); font-family: var(--font-mono); }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; background: none; border: none; color: var(--text-white); font-family: var(--font-mono); }
         .brand span { color: var(--accent-orange); }
         .nav-actions { display: flex; gap: 10px; align-items: center; }
         
         .nav-btn {
             background: transparent; border: 1px solid var(--border-light); color: var(--text-white);
-            padding: 8px 12px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase;
+            padding: 8px 12px; font-family: var(--font-mono); text-transform: uppercase;
             letter-spacing: 1px; font-size: 0.7rem; transition: 0.2s; display: flex; align-items: center; gap: 6px;
             clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
         }
-        .nav-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
-        .nav-btn.active { background: var(--accent-orange); color: var(--bg-black); border-color: var(--accent-orange); }
-        .nav-btn.danger { border-color: var(--danger-red); color: var(--danger-red); }
+        .nav-btn:active { border-color: var(--accent-orange); color: var(--accent-orange); }
         .nav-btn.run-btn { background: var(--accent-orange); color: var(--bg-black); border: none; font-weight: 700; }
-        .nav-btn.run-btn:hover { background: #ff8a5c; color: var(--bg-black); }
+        .nav-btn.run-btn:active { background: #ff8a5c; color: var(--bg-black); }
 
         .status-pill { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; padding: 0 5px; }
         .status-dot { width: 8px; height: 8px; background: var(--text-muted); border-radius: 50%; }
@@ -151,36 +131,22 @@
         .file-info { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex: 1; }
         .file-dot { width: 6px; height: 6px; background: var(--accent-orange); }
         
-        select.lang-select { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 4px 8px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); cursor: pointer; }
+        select.lang-select { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 4px 8px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
         
-        /* Quick Insert Bar */
-        #quick-insert-bar { display: flex; gap: 8px; padding: 8px 20px; background: var(--bg-panel); border-bottom: 1px solid var(--border-grey); overflow-x: auto; white-space: nowrap; }
-        .qi-btn { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-muted); padding: 4px 10px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); flex-shrink: 0; }
-        .qi-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+        #quick-insert-bar { display: flex; gap: 8px; padding: 8px 20px; background: var(--bg-panel); border-bottom: 1px solid var(--border-grey); overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        .qi-btn { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-muted); padding: 4px 10px; font-family: var(--font-mono); font-size: 0.75rem; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); flex-shrink: 0; }
+        .qi-btn:active { border-color: var(--accent-orange); color: var(--accent-orange); }
 
-        /* Context-Aware Split Layout */
         #split-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        #split-wrapper.layout-horizontal { flex-direction: row; }
-        #split-wrapper.layout-vertical { flex-direction: column; }
         
         @media (max-width: 768px) {
             #split-wrapper.layout-horizontal { flex-direction: column; }
             #editor-pane, #output-pane { height: 50%; flex: 1 !important; }
-            #split-gutter { display: none !important; }
         }
         
         #editor-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); overflow: hidden; min-width: 0; min-height: 0; }
         #output-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-black); overflow: hidden; min-width: 0; min-height: 0; }
         
-        #split-gutter { background: var(--border-grey); position: relative; flex-shrink: 0; display: none; z-index: 10; }
-        #split-gutter::before { content: ''; position: absolute; background: var(--text-muted); border-radius: 2px; transition: background 0.2s; }
-        #split-wrapper.layout-horizontal #split-gutter { width: 4px; height: 100%; cursor: col-resize; display: block; }
-        #split-wrapper.layout-horizontal #split-gutter::before { top: 50%; left: 0; transform: translateY(-50%); width: 100%; height: 40px; }
-        #split-wrapper.layout-vertical #split-gutter { height: 4px; width: 100%; cursor: row-resize; display: block; }
-        #split-wrapper.layout-vertical #split-gutter::before { left: 50%; top: 0; transform: translateX(-50%); height: 100%; width: 40px; }
-        #split-gutter:hover::before { background: var(--accent-orange); }
-        
-        /* CodeMirror Custom Theme */
         .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; color: var(--text-white) !important; line-height: 1.5 !important; }
         .CodeMirror-gutters { background: var(--bg-panel) !important; border-right: 1px solid var(--border-grey) !important; }
         .CodeMirror-linenumber { color: var(--text-muted) !important; }
@@ -198,40 +164,31 @@
         .cm-s-default .cm-operator { color: var(--accent-orange) !important; }
         .cm-s-default .cm-tag { color: var(--accent-orange) !important; }
         .cm-s-default .cm-attribute { color: #79c0ff !important; }
-        .CodeMirror-foldmarker { background: var(--bg-panel); color: var(--accent-orange); border: 1px solid var(--border-light); padding: 0 4px; }
         
-        .remote-cursor-widget { border-left: 2px solid var(--accent-orange); margin-left: -1px; height: 18px; display: inline-block; position: relative; pointer-events: none; }
-        .remote-cursor-tag { position: absolute; top: -16px; left: 0; background: var(--accent-orange); color: #000; font-size: 9px; padding: 1px 3px; white-space: nowrap; font-weight: bold; display: none; z-index: 10; }
-        
-        .remote-mouse { position: fixed; width: 20px; height: 20px; pointer-events: none; z-index: 9998; transition: transform 0.05s linear; }
-        .remote-mouse svg { width: 100%; height: 100%; fill: var(--accent-orange); }
-        .remote-mouse::after { content: attr(data-name); position: absolute; top: 15px; left: 15px; background: var(--accent-orange); color: var(--bg-black); font-size: 9px; padding: 2px 4px; white-space: nowrap; font-weight: bold; }
+        .remote-cursor-widget { border-left: 2px solid var(--success-green); margin-left: -1px; height: 18px; display: inline-block; position: relative; pointer-events: none; }
+        .remote-cursor-tag { position: absolute; top: -16px; left: 0; background: var(--success-green); color: #000; font-size: 9px; padding: 1px 3px; white-space: nowrap; font-weight: bold; display: none; z-index: 10; }
 
-        /* Preview & Terminal Pane */
         .output-tabs { display: flex; border-bottom: 1px solid var(--border-grey); background: var(--bg-panel); }
-        .tab-btn { background: none; border: none; color: var(--text-muted); padding: 10px 20px; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; text-transform: uppercase; border-bottom: 2px solid transparent; }
+        .tab-btn { background: none; border: none; color: var(--text-muted); padding: 10px 20px; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; border-bottom: 2px solid transparent; }
         .tab-btn.active { color: var(--accent-orange); border-bottom-color: var(--accent-orange); }
         
         #preview-frame { flex: 1; width: 100%; background: white; border: none; }
-        
-        #terminal-output { flex: 1; overflow-y: auto; padding: 15px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--success-green); background: var(--bg-editor); display: none; white-space: pre-wrap; }
+        #terminal-output { flex: 1; overflow-y: auto; padding: 15px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--success-green); background: var(--bg-editor); display: none; white-space: pre-wrap; -webkit-overflow-scrolling: touch; }
         #terminal-output.active { display: block; }
         .term-error { color: var(--danger-red); }
         .term-info { color: var(--text-muted); }
 
-        /* Extension Panel */
         #ext-panel {
-            position: absolute; top: 0; right: -280px; bottom: 0; width: 280px; 
+            position: fixed; top: 0; right: -280px; bottom: 0; width: 280px; 
             background: var(--bg-panel); border-left: 1px solid var(--border-grey); 
             display: flex; flex-direction: column; z-index: 20; transition: right 0.3s ease;
         }
         .ext-header { padding: 12px 15px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; }
         .ext-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
-        .ext-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; }
-        .ext-close:hover { color: var(--accent-orange); }
-        .ext-list { flex: 1; overflow-y: auto; padding: 10px; }
-        .ext-item { padding: 12px; border: 1px solid var(--border-grey); margin-bottom: 8px; cursor: pointer; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
-        .ext-item:hover { border-color: var(--accent-orange); background: var(--accent-dim); }
+        .ext-close { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; }
+        .ext-list { flex: 1; overflow-y: auto; padding: 10px; -webkit-overflow-scrolling: touch; }
+        .ext-item { padding: 12px; border: 1px solid var(--border-grey); margin-bottom: 8px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+        .ext-item:active { border-color: var(--accent-orange); background: var(--accent-dim); }
         .ext-item h4 { font-size: 0.8rem; margin-bottom: 4px; color: var(--text-white); }
         .ext-item p { font-size: 0.7rem; color: var(--text-muted); }
         
@@ -239,7 +196,6 @@
         .storage-meter-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.3s; }
         .storage-text { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; text-align: right; }
 
-        /* Modals */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
             z-index: 100; display: none; justify-content: center; align-items: center; padding: 20px;
@@ -260,34 +216,27 @@
         .modal-input { width: 100%; background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 12px; font-family: var(--font-mono); font-size: 0.9rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
         .modal-input:focus { border-color: var(--accent-orange); }
         
-        .btn { background: transparent; color: var(--text-white); border: 1px solid var(--border-light); padding: 12px 20px; cursor: pointer; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .btn { background: transparent; color: var(--text-white); border: 1px solid var(--border-light); padding: 12px 20px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:active { border-color: var(--accent-orange); color: var(--accent-orange); }
         .btn-primary { background: var(--accent-orange); color: var(--bg-black); border: none; font-weight: 700; }
-        .btn-primary:hover { background: #ff8a5c; color: var(--bg-black); }
+        .btn-primary:active { background: #ff8a5c; color: var(--bg-black); }
         .btn-danger { background: var(--danger-red); color: var(--bg-black); border: none; font-weight: 700; }
         .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
         
         .recent-list { margin-top: 15px; }
-        .recent-item { padding: 10px; border: 1px solid var(--border-grey); margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
-        .recent-item:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .recent-item { padding: 10px; border: 1px solid var(--border-grey); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
+        .recent-item:active { border-color: var(--accent-orange); color: var(--accent-orange); }
 
-        /* Timeline */
-        #timeline-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 30px; background: var(--bg-panel); border-top: 1px solid var(--border-grey); display: flex; align-items: center; padding: 0 10px; gap: 10px; overflow-x: auto; z-index: 5; }
-        .timeline-item { font-size: 0.65rem; color: var(--text-muted); border: 1px solid var(--border-grey); padding: 3px 8px; cursor: pointer; white-space: nowrap; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
-        .timeline-item:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
-
-        /* Toast */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--bg-panel); border-left: 3px solid var(--accent-orange); padding: 12px 20px; color: var(--text-white); font-size: 0.8rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); min-width: 200px; }
         .toast.error { border-left-color: var(--danger-red); }
         .toast.success { border-left-color: var(--success-green); }
 
-        /* Call Widget */
         #call-widget { position: fixed; bottom: 20px; left: 20px; background: var(--bg-panel); border: 1px solid var(--success-green); padding: 10px 15px; display: none; align-items: center; gap: 10px; z-index: 50; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); transition: box-shadow 0.1s; }
         #call-widget.speaking { box-shadow: 0 0 15px var(--success-green); }
         .call-dot { width: 8px; height: 8px; background: var(--success-green); border-radius: 50%; animation: pulse 1.5s infinite; }
         .call-info { font-size: 0.75rem; color: var(--text-white); }
-        .call-btn { background: none; border: none; cursor: pointer; padding: 0 5px; display: flex; align-items: center; }
+        .call-btn { background: none; border: none; padding: 0 5px; display: flex; align-items: center; }
         .call-btn.mute { color: var(--text-muted); }
         .call-btn.end { color: var(--danger-red); }
 
@@ -303,7 +252,6 @@
         <div class="boot-loader"></div>
     </div>
 
-    <!-- Landing View -->
     <div id="landing-view" class="view active">
         <div class="landing-container">
             <div class="landing-hero">
@@ -323,8 +271,8 @@
             <div class="section-title">How The Tech Works</div>
             <div class="tech-grid">
                 <div class="tech-card">
-                    <h3>1. CRDT Sync</h3>
-                    <p>We use Yjs to sync operations, not full strings. This means no data loss or overwriting when two developers type at the exact same millisecond.</p>
+                    <h3>1. Raw WebRTC Sync</h3>
+                    <p>Direct P2P data channels. We sync the full document state on edits with strict debouncing to guarantee zero data loss without CRDT overhead.</p>
                 </div>
                 <div class="tech-card">
                     <h3>2. WebRTC Media</h3>
@@ -344,7 +292,6 @@
         </div>
     </div>
 
-    <!-- Editor View -->
     <div id="editor-view" class="view">
         <nav>
             <button class="brand" onclick="App.goToLanding()">
@@ -412,8 +359,6 @@
                     <textarea id="code-editor"></textarea>
                 </div>
                 
-                <div id="split-gutter"></div>
-                
                 <div id="output-pane">
                     <div class="output-tabs" id="output-tabs">
                         <button class="tab-btn active" onclick="App.switchTab('preview')">PREVIEW</button>
@@ -423,8 +368,6 @@
                     <div id="terminal-output"></div>
                 </div>
             </div>
-
-            <div id="timeline-bar"></div>
 
             <div id="ext-panel">
                 <div class="ext-header">
@@ -440,10 +383,6 @@
             </div>
         </main>
 
-        <div class="remote-mouse" id="remote-mouse" style="display:none;" data-name="PEER">
-            <svg viewBox="0 0 24 24"><path d="M5.5 3.21V20.79c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36z"/></svg>
-        </div>
-
         <div id="call-widget">
             <div class="call-dot"></div>
             <div class="call-info">LIVE <span id="call-timer">00:00</span></div>
@@ -456,7 +395,6 @@
         </div>
     </div>
 
-    <!-- Modals -->
     <div class="modal-overlay" id="modal-connect">
         <div class="modal-content">
             <div class="modal-header">
@@ -519,6 +457,8 @@
     <div id="toast-container"></div>
 
     <script>
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
         const safeSetItem = (key, val) => {
             try { localStorage.setItem(key, val); App.updateStorageMeter(); } 
             catch (e) { Utils.toast('Local Storage Full! Purge data.', 'error'); }
@@ -536,26 +476,6 @@
             }
         };
 
-        // Yjs CRDT Safe Setup
-        let ydoc, ytext;
-        try {
-            ydoc = new Y.Doc();
-            ytext = ydoc.getText('codesathee');
-        } catch (e) {
-            console.error("Yjs failed to load.", e);
-            ydoc = { transact: (fn) => fn(), on: () => {} };
-            ytext = { 
-                toString: () => localStorage.getItem('codesathee_active_code') || '// Start coding...\n',
-                delete: () => {}, 
-                insert: () => {}, 
-                observe: () => {} 
-            };
-        }
-
-        // Base64 Helpers for WebRTC Binary Sync
-        const toB64 = (u8) => btoa(String.fromCharCode.apply(null, u8));
-        const fromB64 = (b64) => new Uint8Array(atob(b64).split('').map(c => c.charCodeAt(0)));
-
         const App = {
             editor: null,
             currentProjectId: null,
@@ -565,17 +485,17 @@
             snapshots: [],
             peerBookmark: null,
             peerCursorTimeout: null,
-            lastMouseSend: 0,
             saveTimer: null,
             previewTimer: null,
+            syncTimer: null,
+            isApplyingRemote: false,
             
             init: () => {
-                // Unconditional UI Unblock
                 setTimeout(() => {
                     const bootScreen = document.getElementById('boot-screen');
                     bootScreen.style.opacity = '0';
                     setTimeout(() => { bootScreen.style.display = 'none'; }, 500);
-                }, 1600);
+                }, 1000);
 
                 try {
                     App.initEditor();
@@ -583,8 +503,6 @@
                     App.initUsername();
                     P2P.init();
                     App.renderProjects();
-                    App.bindMouseEvents();
-                    App.initGutterDrag();
                     App.changeLang(false);
                     App.renderTimeline();
                     App.updateStorageMeter();
@@ -600,50 +518,8 @@
                 input.value = name;
                 input.addEventListener('input', (e) => {
                     localStorage.setItem('codesathee_username', e.target.value);
-                    document.getElementById('remote-mouse').setAttribute('data-name', e.target.value.toUpperCase());
                     if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'profile', username: e.target.value });
                 });
-                document.getElementById('remote-mouse').setAttribute('data-name', name.toUpperCase());
-            },
-
-            initGutterDrag: () => {
-                const gutter = document.getElementById('split-gutter');
-                let isDragging = false;
-                
-                const startDrag = (e) => { isDragging = true; document.body.style.userSelect = 'none'; e.preventDefault(); };
-                const stopDrag = () => { isDragging = false; document.body.style.userSelect = 'auto'; };
-                
-                const doDrag = (e) => {
-                    if (!isDragging) return;
-                    const wrapper = document.getElementById('split-wrapper');
-                    const rect = wrapper.getBoundingClientRect();
-                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                    const editorPane = document.getElementById('editor-pane');
-                    const outputPane = document.getElementById('output-pane');
-                    
-                    if (wrapper.classList.contains('layout-horizontal')) {
-                        const percentage = ((clientX - rect.left) / rect.width) * 100;
-                        if (percentage > 15 && percentage < 85) {
-                            editorPane.style.flex = `0 0 ${percentage}%`;
-                            outputPane.style.flex = `1 1 ${100 - percentage}%`;
-                        }
-                    } else {
-                        const percentage = ((clientY - rect.top) / rect.height) * 100;
-                        if (percentage > 15 && percentage < 85) {
-                            editorPane.style.flex = `0 0 ${percentage}%`;
-                            outputPane.style.flex = `1 1 ${100 - percentage}%`;
-                        }
-                    }
-                    if (App.editor) App.editor.refresh();
-                };
-                
-                gutter.addEventListener('mousedown', startDrag);
-                document.addEventListener('mousemove', doDrag);
-                document.addEventListener('mouseup', stopDrag);
-                gutter.addEventListener('touchstart', startDrag, { passive: false });
-                document.addEventListener('touchmove', doDrag, { passive: false });
-                document.addEventListener('touchend', stopDrag);
             },
 
             requestWakeLock: async () => {
@@ -671,10 +547,7 @@
                 App.currentProjectId = null;
                 document.getElementById('filename').value = 'untitled.js';
                 document.getElementById('lang-select').value = 'javascript';
-                ydoc.transact(() => {
-                    ytext.delete(0, ytext.toString().length);
-                    ytext.insert(0, '// Start coding...\n');
-                }, 'local');
+                App.editor.setValue('// Start coding...\n');
                 App.snapshots = [];
                 App.renderTimeline();
                 App.showView('editor');
@@ -689,114 +562,62 @@
                     autoCloseTags: true,
                     autoCloseBrackets: true,
                     matchBrackets: true,
-                    matchTags: { bothTags: true },
                     styleActiveLine: true,
-                    foldGutter: true,
-                    gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
                     tabSize: 2,
                     indentUnit: 2,
                     indentWithTabs: false,
                     lineWrapping: true,
                     extraKeys: {
-                        "Ctrl-Space": "autocomplete",
-                        "Ctrl-F": "find",
-                        "Cmd-F": "find",
                         "Tab": (cm) => {
                             if (cm.somethingSelected()) cm.indentSelection("add");
-                            else {
-                                const cursor = cm.getCursor();
-                                const line = cm.getLine(cursor.line);
-                                if (cm.getOption("mode") === "htmlmixed" && line.trim() !== "") {
-                                    try {
-                                        const emmetExpanded = emmet.expandAbbreviation(line.trim());
-                                        if (emmetExpanded) {
-                                            cm.replaceRange(emmetExpanded, {line: cursor.line, ch: 0}, {line: cursor.line, ch: line.length});
-                                            return;
-                                        }
-                                    } catch(e) {}
-                                }
-                                cm.replaceSelection("  ", "end");
-                            }
-                        },
-                        "Enter": (cm) => {
-                            const cursor = cm.getCursor();
-                            const line = cm.getLine(cursor.line);
-                            // Auto-format HTML tags on Enter
-                            if (cm.getOption("mode") === "htmlmixed" && /<[a-zA-Z][^>]*>$/.test(line)) {
-                                const tagMatch = line.match(/<([a-zA-Z][^>]*)>$/);
-                                if (tagMatch) {
-                                    const tagName = tagMatch[1].split(' ')[0];
-                                    cm.replaceRange(`\n  \n</${tagName}>`, {line: cursor.line, ch: line.length}, {line: cursor.line, ch: line.length});
-                                    cm.setCursor({line: cursor.line + 1, ch: 2});
-                                    return;
-                                }
-                            }
-                            cm.replaceSelection("\n", "end");
-                            const prevIndent = cm.getLine(cursor.line).match(/^\s*/)[0];
-                            cm.replaceSelection(prevIndent);
-                        },
-                        "Alt-Up": "swapLineUp",
-                        "Alt-Down": "swapLineDown"
+                            else cm.replaceSelection("  ", "end");
+                        }
                     }
                 });
 
-                // Official Yjs CodeMirror Binding
-                const yUndoManager = new Y.UndoManager(ytext);
-                new CodemirrorBinding(ytext, App.editor, yUndoManager);
-
                 App.editor.on('change', (instance) => {
+                    if (App.isApplyingRemote) return;
+                    
                     clearTimeout(App.saveTimer);
+                    clearTimeout(App.previewTimer);
+                    clearTimeout(App.syncTimer);
+                    
                     document.getElementById('save-status').innerText = 'TYPING...';
+                    
                     App.saveTimer = setTimeout(() => {
                         safeSetItem('codesathee_active_code', instance.getValue());
                         document.getElementById('save-status').innerText = 'SAVED LOCALLY';
-                    }, 800);
+                    }, 600);
 
-                    clearTimeout(App.previewTimer);
-                    App.previewTimer = setTimeout(() => App.updatePreview(), 500);
+                    App.previewTimer = setTimeout(() => App.updatePreview(), 400);
+
+                    App.syncTimer = setTimeout(() => {
+                        if (P2P.conn && P2P.conn.open) {
+                            P2P.conn.send({ t: 'code', val: instance.getValue() });
+                        }
+                    }, 300);
                 });
 
                 App.editor.on('cursorActivity', (instance) => {
+                    if (App.isApplyingRemote) return;
                     if (P2P.conn && P2P.conn.open) {
                         const cursor = instance.getCursor();
                         P2P.conn.send({ t: 'cursor', line: cursor.line, ch: cursor.ch });
                     }
                 });
 
-                App.editor.on('mousedown', () => App.toggleExtPanel(false));
-
                 const savedCode = localStorage.getItem('codesathee_active_code') || '// Start coding...\n';
-                if (ytext.toString() === '') ytext.insert(0, savedCode);
-
-                ydoc.on('update', (update, origin) => {
-                    if (origin !== 'remote' && P2P.conn && P2P.conn.open) {
-                        const b64 = toB64(update);
-                        P2P.conn.send({ t: 'y_update', bin: b64 });
-                    }
-                });
+                App.editor.setValue(savedCode);
             },
 
             quickInsert: (text) => {
                 if (!App.editor) return;
                 App.editor.replaceSelection(text);
                 App.editor.focus();
-                // Move cursor back inside parentheses if applicable
                 if (text.endsWith('()') || text.endsWith('[]') || text.endsWith('{}')) {
                     const cursor = App.editor.getCursor();
                     App.editor.setCursor({line: cursor.line, ch: cursor.ch - 1});
                 }
-            },
-
-            bindMouseEvents: () => {
-                const sendMouse = (x, y) => {
-                    const now = Date.now();
-                    if (now - App.lastMouseSend > 50) {
-                        App.lastMouseSend = now;
-                        if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'mouse', x: x, y: y });
-                    }
-                };
-                document.addEventListener('mousemove', (e) => sendMouse(e.clientX, e.clientY));
-                document.addEventListener('touchmove', (e) => { if(e.touches[0]) sendMouse(e.touches[0].clientX, e.touches[0].clientY); });
             },
 
             changeLang: (broadcast = false) => {
@@ -824,9 +645,6 @@
                     wrapper.className = 'layout-vertical';
                     tabs.children[0].style.display = 'none'; tabs.children[1].style.display = 'none';
                 }
-
-                document.getElementById('editor-pane').style.flex = '1';
-                document.getElementById('output-pane').style.flex = '1';
 
                 if (broadcast && P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'state', lang: lang, filename: document.getElementById('filename').value });
                 App.updatePreview();
@@ -859,7 +677,7 @@
                 term.classList.add('active');
 
                 if (lang === 'python') {
-                    term.innerHTML = '<span class="term-info">Downloading Python WASM Runtime (approx 10MB)...</span>';
+                    term.innerHTML = '<span class="term-info">Downloading Python WASM Runtime (lazy load)...</span>';
                     try {
                         await App.ensurePyodide();
                         term.innerHTML += '<span class="term-info">Executing...</span>\n';
@@ -896,8 +714,19 @@
                 }
             },
 
-            ensurePyodide: function() {
-                if (!App.pyodideReadyPromise) App.pyodideReadyPromise = loadPyodide();
+            ensurePyodide: () => {
+                if (!App.pyodideReadyPromise) {
+                    App.pyodideReadyPromise = new Promise((resolve, reject) => {
+                        if (window.loadPyodide) return resolve(window.loadPyodide());
+                        const script = document.createElement('script');
+                        script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js";
+                        script.onload = async () => {
+                            try { resolve(await loadPyodide()); } catch(e) { reject(e); }
+                        };
+                        script.onerror = reject;
+                        document.body.appendChild(script);
+                    });
+                }
                 return App.pyodideReadyPromise;
             },
 
@@ -977,20 +806,15 @@
                 const saved = localStorage.getItem('codesathee_snapshots');
                 if (saved) App.snapshots = JSON.parse(saved);
                 const bar = document.getElementById('timeline-bar');
+                if (!bar) return;
                 bar.innerHTML = '';
                 if (App.snapshots.length === 0) return;
-                const label = document.createElement('div');
-                label.style.fontSize = '0.65rem'; label.style.color = 'var(--text-muted)'; label.innerText = 'TIMELINE:';
-                bar.appendChild(label);
                 App.snapshots.forEach((s, i) => {
                     const item = document.createElement('div');
                     item.className = 'timeline-item';
                     item.innerText = new Date(s.ts).toLocaleTimeString();
                     item.onclick = () => {
-                        ydoc.transact(() => {
-                            ytext.delete(0, ytext.toString().length);
-                            ytext.insert(0, s.code);
-                        }, 'local');
+                        App.editor.setValue(s.code);
                         Utils.toast('Snapshot Restored');
                     };
                     bar.appendChild(item);
@@ -1049,10 +873,7 @@
                 document.getElementById('filename').value = proj.name;
                 document.getElementById('lang-select').value = proj.lang;
                 App.editor.setOption('mode', proj.lang);
-                ydoc.transact(() => {
-                    ytext.delete(0, ytext.toString().length);
-                    ytext.insert(0, proj.code);
-                }, 'local');
+                App.editor.setValue(proj.code);
                 App.showView('editor');
                 App.changeLang(false);
             },
@@ -1072,11 +893,6 @@
                 const recents = JSON.parse(localStorage.getItem('codesathee_recents') || '[]');
                 const list = document.getElementById('recent-list');
                 list.innerHTML = '';
-                if (recents.length > 0) {
-                    const title = document.createElement('div');
-                    title.className = 'input-label'; title.style.marginBottom = '8px'; title.innerText = 'Recent Connections';
-                    list.appendChild(title);
-                }
                 recents.forEach(id => {
                     const div = document.createElement('div');
                     div.className = 'recent-item';
@@ -1111,20 +927,33 @@
                 App.updatePreview();
             },
 
+            applyRemoteCode: (code) => {
+                if (!App.editor) return;
+                App.isApplyingRemote = true;
+                const cursor = App.editor.getCursor();
+                App.editor.setValue(code);
+                App.editor.setCursor(cursor);
+                App.isApplyingRemote = false;
+                App.updatePreview();
+            },
+
             updatePeerCursor: (line, ch, name) => {
                 if (!App.editor) return;
-                if (name) document.getElementById('remote-mouse').setAttribute('data-name', name.toUpperCase());
-                const cursorEl = document.createElement('span');
-                cursorEl.className = 'remote-cursor-widget';
-                const tagEl = document.createElement('span');
-                tagEl.className = 'remote-cursor-tag';
-                tagEl.innerText = name ? name.toUpperCase() : 'PEER';
-                tagEl.style.display = 'block';
-                cursorEl.appendChild(tagEl);
-                clearTimeout(App.peerCursorTimeout);
-                App.peerCursorTimeout = setTimeout(() => tagEl.style.display = 'none', 2000);
-                if (App.peerBookmark) App.peerBookmark.clear();
-                if (line !== undefined && ch !== undefined) App.peerBookmark = App.editor.setBookmark({line: line, ch: ch}, { widget: cursorEl, handleMouseEvents: false });
+                if (line !== undefined && ch !== undefined) {
+                    if (App.peerBookmark) App.peerBookmark.clear();
+                    const cursorEl = document.createElement('span');
+                    cursorEl.className = 'remote-cursor-widget';
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'remote-cursor-tag';
+                    tagEl.innerText = name ? name.toUpperCase() : 'PEER';
+                    tagEl.style.display = 'block';
+                    cursorEl.appendChild(tagEl);
+                    clearTimeout(App.peerCursorTimeout);
+                    App.peerCursorTimeout = setTimeout(() => tagEl.style.display = 'none', 2000);
+                    try {
+                        App.peerBookmark = App.editor.setBookmark({line: line, ch: ch}, { widget: cursorEl, handleMouseEvents: false });
+                    } catch(e) {}
+                }
             }
         };
 
@@ -1133,14 +962,14 @@
             audioCtx: null, analyser: null, audioLoop: null, isMuted: false,
 
             init: () => {
-                if (!window.Peer) return;
+                if (!window.Peer) return Utils.toast("WebRTC Engine failed to load.", "error");
                 P2P.myId = localStorage.getItem('codesathee_peer_id');
                 if (!P2P.myId) {
                     P2P.myId = 'CS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
                     safeSetItem('codesathee_peer_id', P2P.myId);
                 }
                 document.getElementById('my-peer-id').value = P2P.myId;
-                P2P.peer = new Peer(P2P.myId, { debug: 0 });
+                P2P.peer = new Peer(P2P.myId, { debug: 1 });
 
                 P2P.peer.on('open', () => {
                     document.getElementById('net-status').classList.add('online');
@@ -1148,7 +977,11 @@
                 });
                 P2P.peer.on('connection', (dc) => { P2P.conn = dc; P2P.wireConnection(); });
                 P2P.peer.on('call', (incomingCall) => { P2P.call = incomingCall; App.openModal('modal-call'); });
-                P2P.peer.on('error', (err) => { Utils.toast('P2P Error: ' + err.type, 'error'); });
+                P2P.peer.on('error', (err) => { 
+                    Utils.toast('P2P Error: ' + err.type, 'error'); 
+                    document.getElementById('net-status').classList.remove('online', 'connecting');
+                    document.getElementById('net-text').innerText = 'OFFLINE';
+                });
             },
 
             connect: () => {
@@ -1174,8 +1007,7 @@
                     const username = localStorage.getItem('codesathee_username') || 'PEER';
                     P2P.conn.send({ t: 'profile', username: username });
                     P2P.conn.send({ t: 'state', lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
-                    const stateUpdate = Y.encodeStateAsUpdate(ydoc);
-                    P2P.conn.send({ t: 'sync_req', bin: toB64(stateUpdate) });
+                    P2P.conn.send({ t: 'code', val: App.editor.getValue() });
                 });
 
                 P2P.conn.on('data', P2P.handleData);
@@ -1183,28 +1015,19 @@
                     document.getElementById('net-status').classList.remove('online');
                     document.getElementById('net-text').innerText = 'DISCONNECTED';
                     document.getElementById('btn-call').style.display = 'none';
-                    document.getElementById('remote-mouse').style.display = 'none';
                     const startBtn = document.getElementById('btn-start');
                     if (startBtn) startBtn.innerText = 'START CODING ALONE';
                     if (App.peerBookmark) { App.peerBookmark.clear(); App.peerBookmark = null; }
-                    document.getElementById('remote-mouse').setAttribute('data-name', 'PEER');
                     Utils.toast('Peer Disconnected', 'error');
                 });
             },
 
             handleData: (d) => {
                 if (d.t === 'profile') App.updatePeerCursor(undefined, undefined, d.username);
-                else if (d.t === 'sync_req') Y.applyUpdate(ydoc, fromB64(d.bin), 'remote');
-                else if (d.t === 'y_update') Y.applyUpdate(ydoc, fromB64(d.bin), 'remote');
+                else if (d.t === 'code') App.applyRemoteCode(d.val);
                 else if (d.t === 'state') App.applyState(d.lang, d.filename);
-                else if (d.t === 'cursor') {
-                    const peerName = document.getElementById('remote-mouse').getAttribute('data-name');
-                    App.updatePeerCursor(d.line, d.ch, peerName);
-                } else if (d.t === 'mouse') {
-                    const mouseEl = document.getElementById('remote-mouse');
-                    mouseEl.style.display = 'block';
-                    mouseEl.style.transform = `translate(${d.x}px, ${d.y}px)`;
-                } else if (d.t === 'sys_event') {
+                else if (d.t === 'cursor') App.updatePeerCursor(d.line, d.ch, null);
+                else if (d.t === 'sys_event') {
                     if (d.action === 'save') Utils.toast(`Peer saved ${d.name}`, 'success');
                     else if (d.action === 'delete') Utils.toast(`Peer deleted ${d.name}`, 'error');
                 }

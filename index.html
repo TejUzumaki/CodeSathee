@@ -193,10 +193,6 @@
         .ext-item h4 { font-size: 0.8rem; margin-bottom: 4px; color: var(--text-white); }
         .ext-item p { font-size: 0.7rem; color: var(--text-muted); }
         
-        .storage-meter { height: 4px; background: var(--border-grey); margin-top: 15px; position: relative; }
-        .storage-meter-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.3s; }
-        .storage-text { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; text-align: right; }
-
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
             z-index: 100; display: none; justify-content: center; align-items: center; padding: 20px;
@@ -241,6 +237,9 @@
         .call-btn.mute { color: var(--text-muted); }
         .call-btn.end { color: var(--danger-red); }
 
+        #py-setup-bar { height: 20px; background: var(--bg-black); border: 1px solid var(--border-light); margin: 15px 0; width: 100%; }
+        #py-setup-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.2s; }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-black); }
         ::-webkit-scrollbar-thumb { background: var(--border-light); }
@@ -280,8 +279,8 @@
                     <p>Voice channels use raw WebRTC MediaConnections. Mic audio is streamed directly to the peer with Voice Activity Detection (VAD).</p>
                 </div>
                 <div class="tech-card">
-                    <h3>3. Local First</h3>
-                    <p>Your code is saved to localStorage. If you go offline, changes are tracked. Snapshots are persisted locally for ultimate resilience.</p>
+                    <h3>3. Local First IDB</h3>
+                    <p>Projects and heavy runtimes (Python WASM) are stored in IndexedDB. LocalStorage is kept clean for optimal mobile performance.</p>
                 </div>
             </div>
 
@@ -335,7 +334,7 @@
                             <div class="file-dot"></div>
                             <input type="text" id="filename" value="untitled.js" style="background:transparent; border:none; color:var(--text-white); font-family:var(--font-mono); font-size:0.8rem; outline:none; width:150px;">
                         </div>
-                        <div class="file-info" id="save-status">SAVED LOCALLY</div>
+                        <div class="file-info" id="save-status">SAVED IN IDB</div>
                         <select class="lang-select" id="lang-select" onchange="App.changeLang(true)">
                             <option value="javascript">JavaScript</option>
                             <option value="python">Python</option>
@@ -377,9 +376,8 @@
                 </div>
                 <div class="ext-list" id="ext-list"></div>
                 <div style="padding: 15px; border-top: 1px solid var(--border-grey);">
-                    <div class="ext-title" style="margin-bottom: 10px;">Local Storage</div>
-                    <div class="storage-meter"><div class="storage-meter-fill" id="storage-fill"></div></div>
-                    <div class="storage-text" id="storage-text">0% Used</div>
+                    <div class="ext-title" style="margin-bottom: 10px;">Device Storage</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Using IndexedDB. LocalStorage is kept clean.</div>
                 </div>
             </div>
         </main>
@@ -455,13 +453,79 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-pysetup">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Python Runtime Setup</h2>
+            </div>
+            <div class="modal-body">
+                <p id="pysetup-text">Python requires a 10MB WASM download. This will be cached locally in IndexedDB so you only do this once.</p>
+                <div id="py-setup-bar"><div id="py-setup-fill"></div></div>
+                <p id="pysetup-status" style="font-size: 0.7rem; color: var(--text-muted);">Awaiting user action...</p>
+                <div class="btn-row" id="pysetup-actions">
+                    <button class="btn btn-danger" onclick="App.cancelPySetup()">Cancel</button>
+                    <button class="btn btn-primary" onclick="App.startPyDownload()">Download & Install</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script>
         window.addEventListener('contextmenu', e => e.preventDefault());
 
+        // Decouple Boot Screen
+        setTimeout(() => {
+            const bootScreen = document.getElementById('boot-screen');
+            if (bootScreen) {
+                bootScreen.style.opacity = '0';
+                setTimeout(() => { bootScreen.style.display = 'none'; }, 500);
+            }
+        }, 1500);
+
+        // IndexedDB Wrapper
+        const idb = {
+            db: null,
+            init: () => new Promise((resolve, reject) => {
+                const req = indexedDB.open('CodeSatheeDB', 1);
+                req.onupgradeneeded = e => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('projects')) db.createObjectStore('projects', { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'key' });
+                };
+                req.onsuccess = e => { idb.db = e.target.result; resolve(); };
+                req.onerror = e => reject(e.target.error);
+            }),
+            set: (store, val) => new Promise((resolve, reject) => {
+                const tx = idb.db.transaction(store, 'readwrite');
+                tx.objectStore(store).put(val);
+                tx.oncomplete = resolve; tx.onerror = reject;
+            }),
+            get: (store, key) => new Promise((resolve, reject) => {
+                const tx = idb.db.transaction(store, 'readonly');
+                const req = tx.objectStore(store).get(key);
+                req.onsuccess = () => resolve(req.result); req.onerror = reject;
+            }),
+            getAll: (store) => new Promise((resolve, reject) => {
+                const tx = idb.db.transaction(store, 'readonly');
+                const req = tx.objectStore(store).getAll();
+                req.onsuccess = () => resolve(req.result); req.onerror = reject;
+            }),
+            delete: (store, key) => new Promise((resolve, reject) => {
+                const tx = idb.db.transaction(store, 'readwrite');
+                tx.objectStore(store).delete(key);
+                tx.oncomplete = resolve; tx.onerror = reject;
+            }),
+            clear: (store) => new Promise((resolve, reject) => {
+                const tx = idb.db.transaction(store, 'readwrite');
+                tx.objectStore(store).clear();
+                tx.oncomplete = resolve; tx.onerror = reject;
+            })
+        };
+
         const safeSetItem = (key, val) => {
-            try { localStorage.setItem(key, val); App.updateStorageMeter(); } 
+            try { localStorage.setItem(key, val); } 
             catch (e) { Utils.toast('Local Storage Full! Purge data.', 'error'); }
         };
 
@@ -477,29 +541,8 @@
             }
         };
 
-        const dmp = new diff_match_patch();
-
-        // Pyodide Web Worker Setup
-        const pyWorkerCode = `
-            importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
-            let pyodide = null;
-            self.onmessage = async (e) => {
-                if (!pyodide) pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
-                if (e.data.type === 'run') {
-                    try {
-                        let stdout = '';
-                        pyodide.setStdout({ batched: (s) => stdout += s + '\\n' });
-                        pyodide.setStderr({ batched: (s) => stdout += 'ERROR: ' + s + '\\n' });
-                        await pyodide.runPythonAsync(e.data.code);
-                        self.postMessage({ type: 'result', data: stdout });
-                    } catch (err) {
-                        self.postMessage({ type: 'result', data: 'FATAL: ' + err.message });
-                    }
-                }
-            };
-        `;
-        const pyBlob = new Blob([pyWorkerCode], { type: 'application/javascript' });
-        const pyWorker = new Worker(URL.createObjectURL(pyBlob));
+        let dmp;
+        try { dmp = new diff_match_patch(); } catch (e) { console.error("DMP failed", e); }
 
         const App = {
             editor: null,
@@ -514,24 +557,20 @@
             syncTimer: null,
             isApplyingRemote: false,
             lastSyncedText: '',
+            pyWorker: null,
+            pyReady: false,
+            pyDownloading: false,
             
-            init: () => {
-                setTimeout(() => {
-                    const bootScreen = document.getElementById('boot-screen');
-                    bootScreen.style.opacity = '0';
-                    setTimeout(() => { bootScreen.style.display = 'none'; }, 500);
-                }, 1000);
-
+            init: async () => {
                 try {
+                    await idb.init();
                     App.initEditor();
                     App.initExtensions();
                     App.initUsername();
                     P2P.init();
                     App.renderProjects();
                     App.changeLang(false);
-                    App.renderTimeline();
-                    App.updateStorageMeter();
-                    App.bindPyWorker();
+                    App.checkPyodideCache();
                 } catch (err) {
                     console.error("Initialization Error:", err);
                     Utils.toast('System initialization error: ' + err.message, 'error');
@@ -576,7 +615,6 @@
                 App.editor.setValue('// Start coding...\n');
                 App.lastSyncedText = App.editor.getValue();
                 App.snapshots = [];
-                App.renderTimeline();
                 App.showView('editor');
                 App.changeLang(false);
             },
@@ -611,9 +649,21 @@
                     
                     document.getElementById('save-status').innerText = 'TYPING...';
                     
-                    App.saveTimer = setTimeout(() => {
-                        safeSetItem('codesathee_active_code', instance.getValue());
-                        document.getElementById('save-status').innerText = 'SAVED LOCALLY';
+                    App.saveTimer = setTimeout(async () => {
+                        const code = instance.getValue();
+                        if (App.currentProjectId) {
+                            const proj = await idb.get('projects', App.currentProjectId);
+                            if (proj) {
+                                proj.code = code;
+                                proj.lang = document.getElementById('lang-select').value;
+                                await idb.set('projects', proj);
+                            } else {
+                                await idb.set('cache', { key: 'active_code', val: code });
+                            }
+                        } else {
+                            await idb.set('cache', { key: 'active_code', val: code });
+                        }
+                        document.getElementById('save-status').innerText = 'SAVED IN IDB';
                     }, 600);
 
                     App.previewTimer = setTimeout(() => App.updatePreview(), 400);
@@ -621,12 +671,17 @@
                     App.syncTimer = setTimeout(() => {
                         if (P2P.conn && P2P.conn.open) {
                             const currentText = instance.getValue();
-                            const diff = dmp.diff_main(App.lastSyncedText, currentText);
-                            dmp.diff_cleanupSemantic(diff);
-                            const patches = dmp.patch_make(App.lastSyncedText, diff);
-                            const patchText = dmp.patch_toText(patches);
-                            if (patchText.length > 0) {
-                                P2P.conn.send({ t: 'patch', val: patchText });
+                            if (dmp) {
+                                const diff = dmp.diff_main(App.lastSyncedText, currentText);
+                                dmp.diff_cleanupSemantic(diff);
+                                const patches = dmp.patch_make(App.lastSyncedText, diff);
+                                const patchText = dmp.patch_toText(patches);
+                                if (patchText.length > 0) {
+                                    P2P.conn.send({ t: 'patch', val: patchText });
+                                    App.lastSyncedText = currentText;
+                                }
+                            } else {
+                                P2P.conn.send({ t: 'code', val: currentText });
                                 App.lastSyncedText = currentText;
                             }
                         }
@@ -642,18 +697,12 @@
                     }
                 });
 
-                const savedCode = localStorage.getItem('codesathee_active_code') || '// Start coding...\n';
-                App.editor.setValue(savedCode);
-                App.lastSyncedText = savedCode;
-            },
-
-            bindPyWorker: () => {
-                pyWorker.onmessage = (e) => {
-                    const term = document.getElementById('terminal-output');
-                    if (e.data.type === 'result') {
-                        term.innerHTML += e.data.data || '<span class="term-info">// Execution finished.</span>';
-                    }
-                };
+                // Load active code from IDB
+                idb.get('cache', 'active_code').then(activeCode => {
+                    const code = activeCode ? activeCode.val : '// Start coding...\n';
+                    App.editor.setValue(code);
+                    App.lastSyncedText = code;
+                });
             },
 
             quickInsert: (text) => {
@@ -715,6 +764,142 @@
                 }
             },
 
+            checkPyodideCache: async () => {
+                const pyCache = await idb.get('cache', 'pyodide_installed');
+                App.pyReady = pyCache ? true : false;
+            },
+
+            cancelPySetup: () => {
+                if (App.pyDownloading) {
+                    Utils.toast('Cannot cancel during active download', 'error');
+                    return;
+                }
+                App.closeModal('modal-pysetup');
+            },
+
+            startPyDownload: async () => {
+                if (App.pyDownloading) return;
+                App.pyDownloading = true;
+                const statusEl = document.getElementById('pysetup-status');
+                const fillEl = document.getElementById('py-setup-fill');
+                const actionsEl = document.getElementById('pysetup-actions');
+                actionsEl.style.display = 'none';
+                
+                try {
+                    statusEl.innerText = "Downloading Pyodide WASM Binaries...";
+                    const pyodideVersion = "0.25.0";
+                    const baseURL = `https://cdn.jsdelivr.net/pyodide/v${pyodideVersion}/full/`;
+                    
+                    // Fetch main WASM file with progress
+                    const wasmResp = await fetch(`${baseURL}pyodide.wasm`);
+                    const wasmReader = wasmResp.body.getReader();
+                    const wasmContentLength = wasmResp.headers.get('Content-Length') || 10000000;
+                    let wasmReceived = 0;
+                    let wasmChunks = [];
+                    while(true) {
+                        const {done, value} = await wasmReader.read();
+                        if (done) break;
+                        wasmChunks.push(value);
+                        wasmReceived += value.length;
+                        const progress = (wasmReceived / wasmContentLength) * 100;
+                        fillEl.style.width = `${progress}%`;
+                        statusEl.innerText = `Downloading Pyodide WASM: ${Math.round(progress)}%`;
+                    }
+                    const wasmBlob = new Blob(wasmChunks);
+                    const wasmUrl = URL.createObjectURL(wasmBlob);
+
+                    statusEl.innerText = "Downloading Python Stdlib...";
+                    fillEl.style.width = "0%";
+                    const stdlibResp = await fetch(`${baseURL}python_stdlib.zip`);
+                    const stdlibReader = stdlibResp.body.getReader();
+                    const stdlibContentLength = stdlibResp.headers.get('Content-Length') || 10000000;
+                    let stdlibReceived = 0;
+                    let stdlibChunks = [];
+                    while(true) {
+                        const {done, value} = await stdlibReader.read();
+                        if (done) break;
+                        stdlibChunks.push(value);
+                        stdlibReceived += value.length;
+                        const progress = (stdlibReceived / stdlibContentLength) * 100;
+                        fillEl.style.width = `${progress}%`;
+                        statusEl.innerText = `Downloading Stdlib: ${Math.round(progress)}%`;
+                    }
+                    const stdlibBlob = new Blob(stdlibChunks);
+                    const stdlibUrl = URL.createObjectURL(stdlibBlob);
+
+                    statusEl.innerText = "Loading Pyodide Engine...";
+                    
+                    // Inject pyodide.js script
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = `${baseURL}pyodide.js`;
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.body.appendChild(script);
+                    });
+
+                    App.pyWorker = new Worker(URL.createObjectURL(new Blob([`
+                        let pyodide = null;
+                        self.onmessage = async (e) => {
+                            if (e.data.type === 'init') {
+                                try {
+                                    pyodide = await loadPyodide({
+                                        indexURL: '${baseURL}',
+                                        locateFile: (path) => {
+                                            if (path.endsWith('.wasm')) return '${wasmUrl}';
+                                            if (path.endsWith('.zip')) return '${stdlibUrl}';
+                                            return '${baseURL}' + path;
+                                        }
+                                    });
+                                    self.postMessage({ type: 'status', data: 'ready' });
+                                } catch (err) {
+                                    self.postMessage({ type: 'status', data: 'error', err: err.message });
+                                }
+                            } else if (e.data.type === 'run') {
+                                try {
+                                    let stdout = '';
+                                    pyodide.setStdout({ batched: (s) => stdout += s + '\\n' });
+                                    pyodide.setStderr({ batched: (s) => stdout += 'ERROR: ' + s + '\\n' });
+                                    await pyodide.runPythonAsync(e.data.code);
+                                    self.postMessage({ type: 'result', data: stdout });
+                                } catch (err) {
+                                    self.postMessage({ type: 'result', data: 'FATAL: ' + err.message });
+                                }
+                            }
+                        };
+                    `], { type: 'application/javascript' })));
+
+                    await new Promise((resolve) => {
+                        App.pyWorker.onmessage = (e) => {
+                            if (e.data.type === 'status') {
+                                if (e.data.data === 'ready') {
+                                    resolve();
+                                } else {
+                                    throw new Error(e.data.err || 'Pyodide init failed');
+                                }
+                            }
+                        };
+                        App.pyWorker.postMessage({ type: 'init' });
+                    });
+
+                    await idb.set('cache', { key: 'pyodide_installed', val: true });
+                    App.pyReady = true;
+                    statusEl.innerText = "Setup Complete. Python is ready.";
+                    fillEl.style.width = "100%";
+                    
+                    setTimeout(() => {
+                        App.closeModal('modal-pysetup');
+                        Utils.toast('Python Runtime Installed', 'success');
+                    }, 1500);
+
+                } catch (err) {
+                    statusEl.innerText = "Error: " + err.message;
+                    actionsEl.style.display = 'flex';
+                } finally {
+                    App.pyDownloading = false;
+                }
+            },
+
             runCode: async () => {
                 const lang = document.getElementById('lang-select').value;
                 const term = document.getElementById('terminal-output');
@@ -723,8 +908,18 @@
                 term.classList.add('active');
 
                 if (lang === 'python') {
+                    if (!App.pyReady) {
+                        App.openModal('modal-pysetup');
+                        if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'py_installing' });
+                        return;
+                    }
                     term.innerHTML = '<span class="term-info">Executing in Web Worker...</span>\n';
-                    pyWorker.postMessage({ type: 'run', code: App.editor.getValue() });
+                    App.pyWorker.onmessage = (e) => {
+                        if (e.data.type === 'result') {
+                            term.innerHTML += e.data.data || '<span class="term-info">// Execution finished.</span>';
+                        }
+                    };
+                    App.pyWorker.postMessage({ type: 'run', code: App.editor.getValue() });
                 } else if (lang === 'javascript') {
                     const code = App.editor.getValue();
                     const logCapture = `
@@ -798,15 +993,6 @@
             toggleExtPanel: (show = true) => {
                 const panel = document.getElementById('ext-panel');
                 panel.style.right = show ? '0px' : '-280px';
-                if (show) App.updateStorageMeter();
-            },
-
-            updateStorageMeter: () => {
-                let total = 0;
-                for (let x in localStorage) total += ((localStorage[x].length || 0) + (x.length || 0)) * 2;
-                const percentage = Math.min(100, (total / (5 * 1024 * 1024)) * 100);
-                document.getElementById('storage-fill').style.width = percentage + '%';
-                document.getElementById('storage-text').innerText = percentage.toFixed(2) + '% Used';
             },
 
             openModal: (id) => {
@@ -819,28 +1005,8 @@
                 const snap = { ts: Date.now(), code: App.editor.getValue() };
                 App.snapshots.push(snap);
                 if (App.snapshots.length > 10) App.snapshots.shift();
-                safeSetItem('codesathee_snapshots', JSON.stringify(App.snapshots));
-                App.renderTimeline();
-                Utils.toast('Snapshot Saved');
-            },
-
-            renderTimeline: () => {
-                const saved = localStorage.getItem('codesathee_snapshots');
-                if (saved) App.snapshots = JSON.parse(saved);
-                const bar = document.getElementById('timeline-bar');
-                if (!bar) return;
-                bar.innerHTML = '';
-                if (App.snapshots.length === 0) return;
-                App.snapshots.forEach((s, i) => {
-                    const item = document.createElement('div');
-                    item.className = 'timeline-item';
-                    item.innerText = new Date(s.ts).toLocaleTimeString();
-                    item.onclick = () => {
-                        App.editor.setValue(s.code);
-                        Utils.toast('Snapshot Restored');
-                    };
-                    bar.appendChild(item);
-                });
+                idb.set('cache', { key: 'snapshots', val: App.snapshots });
+                Utils.toast('Snapshot Saved in IDB');
             },
 
             saveProject: (notifyPeer = false) => {
@@ -849,33 +1015,35 @@
                 App._notifyPeerOnSave = notifyPeer;
             },
 
-            confirmSaveProject: (notifyPeer = false) => {
+            confirmSaveProject: async (notifyPeer = false) => {
                 const name = document.getElementById('project-name').value;
                 if (!name) return Utils.toast('Enter a name', 'error');
-                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                let projects = await idb.getAll('projects');
                 const code = App.editor.getValue();
                 const lang = document.getElementById('lang-select').value;
-                if (App.currentProjectId) {
-                    const idx = projects.findIndex(p => p.id === App.currentProjectId);
-                    if (idx > -1) { projects[idx].name = name; projects[idx].code = code; projects[idx].lang = lang; }
+                const id = App.currentProjectId || Date.now().toString();
+                
+                const existingIdx = projects.findIndex(p => p.id === id);
+                if (existingIdx > -1) {
+                    projects[existingIdx].name = name; projects[existingIdx].code = code; projects[existingIdx].lang = lang;
+                    await idb.set('projects', projects[existingIdx]);
                 } else {
-                    const newProj = { id: Date.now().toString(), name, code, lang };
-                    projects.push(newProj);
-                    App.currentProjectId = newProj.id;
+                    const newProj = { id, name, code, lang };
+                    await idb.set('projects', newProj);
+                    App.currentProjectId = id;
                 }
-                safeSetItem('codesathee_projects', JSON.stringify(projects));
+                
                 App.closeModal('modal-save');
-                Utils.toast('Project Saved');
+                Utils.toast('Project Saved in IDB');
                 document.getElementById('filename').value = name;
                 
-                // Sync Save State
                 if (notifyPeer && P2P.conn && P2P.conn.open) {
                     P2P.conn.send({ t: 'sync_save', id: App.currentProjectId, name: name, lang: lang, code: code });
                 }
             },
 
-            renderProjects: () => {
-                const projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+            renderProjects: async () => {
+                const projects = await idb.getAll('projects');
                 const grid = document.getElementById('projects-grid');
                 grid.innerHTML = '';
                 if (projects.length === 0) {
@@ -891,9 +1059,8 @@
                 });
             },
 
-            loadProject: (id) => {
-                const projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
-                const proj = projects.find(p => p.id === id);
+            loadProject: async (id) => {
+                const proj = await idb.get('projects', id);
                 if (!proj) return;
                 App.currentProjectId = proj.id;
                 document.getElementById('filename').value = proj.name;
@@ -905,12 +1072,10 @@
                 App.changeLang(false);
             },
 
-            deleteProject: (id, e) => {
+            deleteProject: async (id, e) => {
                 e.stopPropagation();
-                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
-                const proj = projects.find(p => p.id === id);
-                projects = projects.filter(p => p.id !== id);
-                safeSetItem('codesathee_projects', JSON.stringify(projects));
+                const proj = await idb.get('projects', id);
+                await idb.delete('projects', id);
                 App.renderProjects();
                 Utils.toast('Project Deleted', 'error');
                 if (proj && P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'sys_event', action: 'delete', name: proj.name });
@@ -938,9 +1103,11 @@
                 safeSetItem('codesathee_recents', JSON.stringify(recents));
             },
 
-            panicWipe: () => {
+            panicWipe: async () => {
+                await idb.clear('projects');
+                await idb.clear('cache');
                 localStorage.clear();
-                Utils.toast('Local Data Purged', 'error');
+                Utils.toast('All Local Data Purged', 'error');
                 setTimeout(() => location.reload(), 1000);
             },
 
@@ -955,14 +1122,13 @@
             },
 
             applyRemotePatch: (patchText) => {
-                if (!App.editor) return;
+                if (!App.editor || !dmp) return;
                 App.isApplyingRemote = true;
                 
                 const currentText = App.editor.getValue();
                 const patches = dmp.patch_fromText(patchText);
                 const [newText, results] = dmp.patch_apply(patches, currentText);
                 
-                // Only apply if patches were successful
                 let changed = false;
                 for(let i=0; i<results.length; i++) {
                     if(results[i]) changed = true;
@@ -970,9 +1136,6 @@
 
                 if (changed) {
                     const cursor = App.editor.getCursor();
-                    const currentSelection = App.editor.getSelection();
-                    
-                    // Find common prefix/suffix to preserve cursor exactly
                     let start = 0;
                     while (start < currentText.length && start < newText.length && currentText[start] === newText[start]) start++;
                     let endOld = currentText.length - 1;
@@ -995,7 +1158,7 @@
                 App.updatePreview();
             },
 
-            applyRemoteSave: (data) => {
+            applyRemoteSave: async (data) => {
                 App.currentProjectId = data.id;
                 document.getElementById('filename').value = data.name;
                 document.getElementById('lang-select').value = data.lang;
@@ -1003,16 +1166,8 @@
                 App.editor.setValue(data.code);
                 App.lastSyncedText = data.code;
                 
-                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
-                const idx = projects.findIndex(p => p.id === data.id);
-                if (idx > -1) { 
-                    projects[idx].name = data.name; 
-                    projects[idx].code = data.code; 
-                    projects[idx].lang = data.lang; 
-                } else {
-                    projects.push({ id: data.id, name: data.name, code: data.code, lang: data.lang });
-                }
-                safeSetItem('codesathee_projects', JSON.stringify(projects));
+                const proj = { id: data.id, name: data.name, code: data.code, lang: data.lang };
+                await idb.set('projects', proj);
                 App.changeLang(false);
                 Utils.toast(`Peer saved project: ${data.name}`, 'success');
             },
@@ -1087,9 +1242,11 @@
                     const username = localStorage.getItem('codesathee_username') || 'PEER';
                     P2P.conn.send({ t: 'profile', username: username });
                     P2P.conn.send({ t: 'state', lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
-                    P2P.conn.send({ t: 'patch', val: dmp.patch_toText(dmp.patch_make('', App.editor.getValue())) });
+                    if (dmp) {
+                        const patchText = dmp.patch_toText(dmp.patch_make('', App.editor.getValue()));
+                        P2P.conn.send({ t: 'patch', val: patchText });
+                    }
                     
-                    // Start Heartbeat
                     P2P.lastPongTime = Date.now();
                     P2P.heartbeatInterval = setInterval(() => {
                         if (!P2P.conn || !P2P.conn.open) return;
@@ -1123,9 +1280,14 @@
                 else if (d.t === 'pong') P2P.lastPongTime = Date.now();
                 else if (d.t === 'profile') App.updatePeerCursor(undefined, d.username);
                 else if (d.t === 'patch') App.applyRemotePatch(d.val);
+                else if (d.t === 'code') App.applyRemotePatch(d.val); // fallback
                 else if (d.t === 'state') App.applyState(d.lang, d.filename);
                 else if (d.t === 'cursor') App.updatePeerCursor(d.idx, null);
                 else if (d.t === 'sync_save') App.applyRemoteSave(d);
+                else if (d.t === 'py_installing') {
+                    Utils.toast('Peer is installing Python runtime. You should too!', 'success');
+                    if (!App.pyReady) App.openModal('modal-pysetup');
+                }
                 else if (d.t === 'sys_event') {
                     if (d.action === 'delete') Utils.toast(`Peer deleted ${d.name}`, 'error');
                 }

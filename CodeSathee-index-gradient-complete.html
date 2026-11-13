@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CodeSathee // Tactical Dev Environment</title>
+    <meta name="theme-color" content="#080706">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/diff-match-patch/1.0.5/diff-match-patch.min.js"></script>
+
+    <style>
+        :root {
+            --bg-black: #000000;
+            --bg-panel: #0a0a0a;
+            --bg-editor: #050505;
+            --border-grey: #1a1a1a;
+            --border-light: #333333;
+            --text-white: #ffffff;
+            --text-muted: #666666;
+            --accent-orange: #ff6e40;
+            --accent-dim: rgba(255, 110, 64, 0.15);
+            --danger-red: #ff4d4d;
+            --success-green: #4caf50;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+
+        html, body { height: 100%; overflow: hidden; background: var(--bg-black); }
+
+        body {
+            font-family: var(--font-mono);
+            color: var(--text-white);
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #boot-screen {
+            position: fixed; inset: 0; background: var(--bg-black); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        #boot-screen::before {
+            content: ''; position: absolute; inset: 0; 
+            background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px);
+            pointer-events: none;
+        }
+        .boot-text { color: var(--accent-orange); font-size: 0.9rem; letter-spacing: 3px; margin-bottom: 15px; text-transform: uppercase; }
+        .boot-loader { width: 220px; height: 2px; background: var(--border-light); position: relative; overflow: hidden; clip-path: polygon(0 0, 100% 0, 95% 100%, 0 100%); }
+        .boot-loader::after { content: ''; position: absolute; top: 0; left: 0; width: 30%; height: 100%; background: var(--accent-orange); animation: loadBar 1.5s ease-in-out infinite; }
+        @keyframes loadBar { 0% { left: -30%; } 100% { left: 100%; } }
+
+        .view { display: none; flex-direction: column; height: 100vh; width: 100vw; }
+        .view.active { display: flex; }
+
+        #landing-view { overflow-y: auto; padding: 40px 20px; -webkit-overflow-scrolling: touch; }
+        .landing-container { max-width: 800px; margin: 0 auto; width: 100%; }
+        .landing-hero { text-align: center; margin-bottom: 60px; padding-top: 40px; }
+        .landing-hero h1 { font-size: 2.5rem; margin-bottom: 15px; letter-spacing: -1px; }
+        .landing-hero h1 span { color: var(--accent-orange); }
+        .landing-hero p { color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto 30px; line-height: 1.6; }
+        .cta-group { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+        
+        .user-setup { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; }
+        .user-input { background: var(--bg-panel); border: 1px solid var(--border-grey); color: var(--text-white); padding: 10px 15px; font-family: var(--font-mono); font-size: 0.9rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); max-width: 250px; }
+        .user-input:focus { border-color: var(--accent-orange); }
+
+        .section-title { font-size: 1.2rem; margin-bottom: 20px; border-left: 3px solid var(--accent-orange); padding-left: 12px; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
+        .section-title button { background: none; border: 1px solid var(--border-light); color: var(--danger-red); padding: 4px 8px; font-size: 0.7rem; font-family: var(--font-mono); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
+        
+        .tech-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 60px; }
+        @media (min-width: 768px) { .tech-grid { grid-template-columns: repeat(3, 1fr); } }
+        .tech-card { background: var(--bg-panel); border: 1px solid var(--border-grey); padding: 20px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%); }
+        .tech-card h3 { color: var(--accent-orange); font-size: 0.9rem; margin-bottom: 10px; }
+        .tech-card p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+        .projects-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 40px; }
+        @media (min-width: 768px) { .projects-grid { grid-template-columns: repeat(2, 1fr); } }
+        .project-card { background: var(--bg-panel); border: 1px solid var(--border-grey); padding: 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+        .project-card:active { border-color: var(--accent-orange); background: var(--accent-dim); }
+        .project-info h4 { font-size: 0.9rem; margin-bottom: 4px; }
+        .project-info p { font-size: 0.7rem; color: var(--text-muted); }
+        .project-delete { background: none; border: none; color: var(--danger-red); padding: 5px; opacity: 0.5; font-size: 1.2rem; }
+        .project-delete:active { opacity: 1; }
+
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 20px; border-bottom: 1px solid var(--border-grey);
+            background: var(--bg-panel); z-index: 10; flex-shrink: 0;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 0.9rem; background: none; border: none; color: var(--text-white); font-family: var(--font-mono); }
+        .brand span { color: var(--accent-orange); }
+        .nav-actions { display: flex; gap: 10px; align-items: center; }
+        
+        .nav-btn {
+            background: transparent; border: 1px solid var(--border-light); color: var(--text-white);
+            padding: 8px 12px; font-family: var(--font-mono); text-transform: uppercase;
+            letter-spacing: 1px; font-size: 0.7rem; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+        }
+        .nav-btn:active { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .nav-btn.run-btn { background: var(--accent-orange); color: var(--bg-black); border: none; font-weight: 700; }
+        .nav-btn.run-btn:active { background: #ff8a5c; color: var(--bg-black); }
+
+        .status-pill { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; padding: 0 5px; }
+        .status-dot { width: 8px; height: 8px; background: var(--text-muted); border-radius: 50%; }
+        .status-dot.online { background: var(--success-green); box-shadow: 0 0 8px var(--success-green); }
+        .status-dot.connecting { background: var(--accent-orange); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        
+        .editor-header { padding: 8px 20px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; background: var(--bg-panel); gap: 10px; flex-wrap: wrap; }
+        .file-info { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex: 1; }
+        .file-dot { width: 6px; height: 6px; background: var(--accent-orange); }
+        
+        select.lang-select { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 4px 8px; font-family: var(--font-mono); font-size: 0.75rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
+        
+        #quick-insert-bar { display: flex; gap: 8px; padding: 8px 20px; background: var(--bg-panel); border-bottom: 1px solid var(--border-grey); overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        .qi-btn { background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-muted); padding: 4px 10px; font-family: var(--font-mono); font-size: 0.75rem; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); flex-shrink: 0; }
+        .qi-btn:active { border-color: var(--accent-orange); color: var(--accent-orange); }
+
+        #split-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        @media (max-width: 768px) {
+            #split-wrapper.layout-horizontal { flex-direction: column; }
+            #editor-pane, #output-pane { height: 50%; flex: 1 !important; }
+        }
+        
+        #editor-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); overflow: hidden; min-width: 0; min-height: 0; }
+        #output-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-black); overflow: hidden; min-width: 0; min-height: 0; }
+        
+        .CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; background: var(--bg-editor) !important; color: var(--text-white) !important; line-height: 1.5 !important; }
+        .CodeMirror-gutters { background: var(--bg-panel) !important; border-right: 1px solid var(--border-grey) !important; }
+        .CodeMirror-linenumber { color: var(--text-muted) !important; }
+        .CodeMirror-cursor { border-left: 2px solid var(--accent-orange) !important; }
+        .CodeMirror-selected { background: rgba(255, 110, 64, 0.2) !important; }
+        .CodeMirror-activeline-background { background: rgba(255, 255, 255, 0.03) !important; }
+        .CodeMirror-matchingbracket { color: var(--accent-orange) !important; text-decoration: underline; border-bottom: 1px solid var(--accent-orange); }
+        .cm-s-default .cm-keyword { color: var(--accent-orange) !important; }
+        .cm-s-default .cm-string { color: #a5d6ff !important; }
+        .cm-s-default .cm-number { color: #79c0ff !important; }
+        .cm-s-default .cm-comment { color: var(--text-muted) !important; font-style: italic; }
+        .cm-s-default .cm-variable { color: var(--text-white) !important; }
+        .cm-s-default .cm-property { color: #79c0ff !important; }
+        .cm-s-default .cm-def { color: #ffd700 !important; }
+        .cm-s-default .cm-operator { color: var(--accent-orange) !important; }
+        .cm-s-default .cm-tag { color: var(--accent-orange) !important; }
+        .cm-s-default .cm-attribute { color: #79c0ff !important; }
+        
+        .remote-cursor-widget { border-left: 2px solid var(--success-green); margin-left: -1px; height: 18px; display: inline-block; position: relative; pointer-events: none; }
+        .remote-cursor-tag { position: absolute; top: -16px; left: 0; background: var(--success-green); color: #000; font-size: 9px; padding: 1px 3px; white-space: nowrap; font-weight: bold; display: none; z-index: 10; }
+
+        .output-tabs { display: flex; border-bottom: 1px solid var(--border-grey); background: var(--bg-panel); }
+        .tab-btn { background: none; border: none; color: var(--text-muted); padding: 10px 20px; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: var(--accent-orange); border-bottom-color: var(--accent-orange); }
+        
+        #preview-frame { flex: 1; width: 100%; background: white; border: none; }
+        #terminal-output { flex: 1; overflow-y: auto; padding: 15px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--success-green); background: var(--bg-editor); display: none; white-space: pre-wrap; -webkit-overflow-scrolling: touch; }
+        #terminal-output.active { display: block; }
+        .term-error { color: var(--danger-red); }
+        .term-info { color: var(--text-muted); }
+
+        #ext-panel {
+            position: fixed; top: 0; right: -280px; bottom: 0; width: 280px; 
+            background: var(--bg-panel); border-left: 1px solid var(--border-grey); 
+            display: flex; flex-direction: column; z-index: 20; transition: right 0.3s ease;
+        }
+        .ext-header { padding: 12px 15px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; }
+        .ext-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .ext-close { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; }
+        .ext-list { flex: 1; overflow-y: auto; padding: 10px; -webkit-overflow-scrolling: touch; }
+        .ext-item { padding: 12px; border: 1px solid var(--border-grey); margin-bottom: 8px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+        .ext-item:active { border-color: var(--accent-orange); background: var(--accent-dim); }
+        .ext-item h4 { font-size: 0.8rem; margin-bottom: 4px; color: var(--text-white); }
+        .ext-item p { font-size: 0.7rem; color: var(--text-muted); }
+        
+        .storage-meter { height: 4px; background: var(--border-grey); margin-top: 15px; position: relative; }
+        .storage-meter-fill { height: 100%; background: var(--accent-orange); width: 0%; transition: width 0.3s; }
+        .storage-text { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; text-align: right; }
+
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
+            z-index: 100; display: none; justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            width: 100%; max-width: 500px; background: var(--bg-panel); border: 1px solid var(--border-light);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border-grey); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-orange); }
+        .modal-body { padding: 20px; }
+        .modal-body p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.5; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .input-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .modal-input { width: 100%; background: var(--bg-black); border: 1px solid var(--border-grey); color: var(--text-white); padding: 12px; font-family: var(--font-mono); font-size: 0.9rem; outline: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+        .modal-input:focus { border-color: var(--accent-orange); }
+        
+        .btn { background: transparent; color: var(--text-white); border: 1px solid var(--border-light); padding: 12px 20px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:active { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .btn-primary { background: var(--accent-orange); color: var(--bg-black); border: none; font-weight: 700; }
+        .btn-primary:active { background: #ff8a5c; color: var(--bg-black); }
+        .btn-danger { background: var(--danger-red); color: var(--bg-black); border: none; font-weight: 700; }
+        .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+        
+        .recent-list { margin-top: 15px; }
+        .recent-item { padding: 10px; border: 1px solid var(--border-grey); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
+        .recent-item:active { border-color: var(--accent-orange); color: var(--accent-orange); }
+
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--bg-panel); border-left: 3px solid var(--accent-orange); padding: 12px 20px; color: var(--text-white); font-size: 0.8rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); min-width: 200px; }
+        .toast.error { border-left-color: var(--danger-red); }
+        .toast.success { border-left-color: var(--success-green); }
+
+        #call-widget { position: fixed; bottom: 20px; left: 20px; background: var(--bg-panel); border: 1px solid var(--success-green); padding: 10px 15px; display: none; align-items: center; gap: 10px; z-index: 50; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); transition: box-shadow 0.1s; }
+        #call-widget.speaking { box-shadow: 0 0 15px var(--success-green); }
+        .call-dot { width: 8px; height: 8px; background: var(--success-green); border-radius: 50%; animation: pulse 1.5s infinite; }
+        .call-info { font-size: 0.75rem; color: var(--text-white); }
+        .call-btn { background: none; border: none; padding: 0 5px; display: flex; align-items: center; }
+        .call-btn.mute { color: var(--text-muted); }
+        .call-btn.end { color: var(--danger-red); }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-black); }
+        ::-webkit-scrollbar-thumb { background: var(--border-light); }
+
+
+        /* ============================================================
+           CODESATHEE — ORIGINAL TACTICAL THEME / GRADIENT EDITION
+           Visual-only refinement. Original application markup and
+           JavaScript remain intact.
+        ============================================================ */
+        /* CODESATHEE — ORIGINAL TACTICAL THEME, GRADIENT EDITION */
+        :root {
+          --bg-black: #080706;
+          --bg-panel: #100d0b;
+          --bg-editor: #090807;
+          --border-grey: #29201b;
+          --border-light: #493126;
+          --text-white: #f5eee9;
+          --text-muted: #9a877b;
+          --accent-orange: #ff784e;
+          --accent-dim: rgba(255, 120, 78, .13);
+          --danger-red: #ff5b58;
+          --success-green: #83c98a;
+          --accent-gradient: linear-gradient(118deg, #ff653f 0%, #ff8750 48%, #ffb36b 100%);
+          --panel-gradient: linear-gradient(145deg, rgba(255, 119, 72, .075), transparent 42%), linear-gradient(160deg, #15100d 0%, #0c0a09 72%);
+          --deep-glow: 0 18px 55px rgba(0, 0, 0, .42), 0 0 32px rgba(255, 105, 62, .055);
+        }
+        html, body { background: #080706; }
+        body {
+          background: radial-gradient(ellipse at 50% -18%, rgba(255, 105, 59, .12), transparent 48%),
+                      radial-gradient(ellipse at 100% 100%, rgba(128, 49, 27, .09), transparent 42%), #080706;
+        }
+        body::before {
+          content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+          opacity: .18;
+          background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.018) 4px);
+        }
+        .view, #boot-screen, nav, main, #landing-view, #ext-panel, .modal-overlay, #toast-container, #call-widget { isolation: isolate; }
+        #boot-screen {
+          background: radial-gradient(ellipse at 50% 45%, rgba(255, 104, 60, .12), transparent 42%), #080706;
+        }
+        #boot-screen::before { opacity: .65; }
+        .boot-text { color: #ff956d; text-shadow: 0 0 22px rgba(255, 111, 65, .28); }
+        .boot-loader { height: 3px; background: #2c211b; box-shadow: 0 0 18px rgba(255, 110, 64, .08); }
+        .boot-loader::after { background: var(--accent-gradient); box-shadow: 0 0 14px rgba(255, 112, 66, .55); }
+        #landing-view {
+          position: relative;
+          background: radial-gradient(ellipse at 50% 0%, rgba(255, 108, 64, .105), transparent 38%),
+                      radial-gradient(ellipse at 0% 75%, rgba(112, 47, 27, .09), transparent 35%);
+        }
+        .landing-container { position: relative; }
+        .landing-hero { margin-bottom: 52px; padding-top: 54px; }
+        .landing-hero h1 {
+          font-size: clamp(2.45rem, 7vw, 4rem); letter-spacing: .035em; line-height: 1.05;
+          text-shadow: 0 8px 36px rgba(255, 106, 62, .12);
+        }
+        .landing-hero h1 span {
+          color: #ff986e;
+          background: var(--accent-gradient); -webkit-background-clip: text; background-clip: text;
+          -webkit-text-fill-color: transparent; filter: drop-shadow(0 5px 18px rgba(255, 105, 62, .18));
+        }
+        .landing-hero p { color: #ad9b90; }
+        .user-setup { align-items: stretch; }
+        .user-input, .modal-input {
+          background: linear-gradient(145deg, rgba(255, 116, 69, .07), transparent 55%), #0c0a09;
+          border: 1px solid #3b2a22; border-radius: 2px;
+          box-shadow: inset 0 1px rgba(255,255,255,.025), 0 8px 22px rgba(0,0,0,.18);
+          transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+        .user-input:focus, .modal-input:focus {
+          border-color: #d96e49; box-shadow: 0 0 0 3px rgba(255, 116, 69, .10), 0 0 24px rgba(255, 116, 69, .08);
+        }
+        .section-title { border-left-color: #ff8155; color: #f2e6dd; }
+        .section-title::after {
+          content: ""; height: 1px; flex: 1; margin-left: 16px;
+          background: linear-gradient(90deg, rgba(255, 120, 78, .35), transparent);
+        }
+        .section-title button { border-color: #493126; color: #ff7768; }
+        .tech-grid, .projects-grid { gap: 14px; }
+        .tech-card, .project-card {
+          position: relative; overflow: hidden;
+          background: var(--panel-gradient); border: 1px solid #30231d;
+          box-shadow: inset 0 1px rgba(255,255,255,.025), 0 12px 30px rgba(0,0,0,.20);
+          transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .tech-card::before, .project-card::before, .ext-item::before {
+          content: ""; position: absolute; top: 0; left: 0; width: 42px; height: 1px;
+          background: var(--accent-gradient); opacity: .8;
+        }
+        .tech-card::after {
+          content: ""; position: absolute; right: -34px; bottom: -48px; width: 110px; height: 110px;
+          border: 1px solid rgba(255, 129, 82, .10); transform: rotate(35deg); pointer-events: none;
+        }
+        .tech-card h3 { color: #ff966e; letter-spacing: .06em; }
+        .tech-card p, .project-info p { color: #a18e82; }
+        .project-card { min-height: 78px; }
+        .project-card:active, .project-card:hover, .tech-card:hover {
+          border-color: rgba(255, 130, 83, .55); box-shadow: var(--deep-glow); transform: translateY(-2px);
+        }
+        .project-delete { color: #ff7669; }
+        nav {
+          background: linear-gradient(100deg, rgba(255, 112, 67, .085), transparent 42%), rgba(15, 12, 10, .96);
+          border-bottom: 1px solid #33251e; box-shadow: 0 8px 28px rgba(0,0,0,.24);
+        }
+        .brand { letter-spacing: 1.5px; }
+        .brand span { color: #ff966e; text-shadow: 0 0 16px rgba(255, 112, 64, .24); }
+        .nav-btn, .btn, .qi-btn, .tab-btn, .section-title button {
+          transition: color .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+        .nav-btn {
+          border-color: #463127; background: linear-gradient(145deg, rgba(255, 124, 75, .045), transparent);
+        }
+        .nav-btn:hover, .nav-btn:focus-visible, .nav-btn:active {
+          border-color: #e47b52; color: #ff9a70; box-shadow: 0 0 18px rgba(255, 112, 65, .09);
+        }
+        .nav-btn.run-btn {
+          color: #1b0d08; background: var(--accent-gradient);
+          box-shadow: 0 5px 18px rgba(255, 105, 60, .18), inset 0 1px rgba(255,255,255,.28);
+        }
+        .nav-btn.run-btn:hover, .nav-btn.run-btn:focus-visible, .nav-btn.run-btn:active {
+          color: #160905; filter: brightness(1.08); box-shadow: 0 7px 24px rgba(255, 105, 60, .28);
+        }
+        .status-pill { color: #b49e90; }
+        .status-dot.online { background: #8bd69a; box-shadow: 0 0 10px rgba(139,214,154,.65); }
+        .status-dot.connecting { background: #ff9a68; box-shadow: 0 0 10px rgba(255,154,104,.35); }
+        .editor-header {
+          background: linear-gradient(90deg, rgba(255, 116, 69, .055), transparent 48%), #100d0b;
+          border-bottom-color: #30231d;
+        }
+        .file-info { color: #b29d90; }
+        select.lang-select {
+          background: #0b0908; border-color: #493126; color: #f4e8df;
+        }
+        #quick-insert-bar {
+          background: linear-gradient(90deg, rgba(255, 112, 64, .045), transparent 65%), #100d0b;
+          border-bottom-color: #30231d;
+        }
+        .qi-btn { background: linear-gradient(145deg, #17100d, #0b0908); border-color: #35271f; color: #b7a397; }
+        .qi-btn:hover, .qi-btn:focus-visible, .qi-btn:active {
+          border-color: #bd6948; color: #ff9a70; background: rgba(255, 116, 69, .10);
+        }
+        #editor-pane { background: radial-gradient(ellipse at 0 0, rgba(255, 111, 64, .035), transparent 35%), #090807; }
+        #output-pane { background: radial-gradient(ellipse at 100% 0, rgba(255, 111, 64, .035), transparent 35%), #080706; }
+        .CodeMirror { background: #090807 !important; color: #f3eae4 !important; }
+        .CodeMirror-gutters { background: linear-gradient(90deg, #15100d, #100c0a) !important; border-right-color: #30231d !important; }
+        .CodeMirror-linenumber { color: #78685e !important; }
+        .CodeMirror-cursor { border-left-color: #ff9368 !important; }
+        .CodeMirror-selected { background: rgba(255, 123, 78, .20) !important; }
+        .CodeMirror-activeline-background { background: rgba(255, 155, 111, .045) !important; }
+        .CodeMirror-matchingbracket { color: #ffb078 !important; border-bottom-color: #ff8b5d !important; }
+        .cm-s-default .cm-keyword, .cm-s-default .cm-tag { color: #ff9368 !important; }
+        .cm-s-default .cm-string { color: #d6b47e !important; }
+        .cm-s-default .cm-number { color: #e6a56f !important; }
+        .cm-s-default .cm-comment { color: #81766d !important; }
+        .cm-s-default .cm-variable { color: #f1e6de !important; }
+        .cm-s-default .cm-property, .cm-s-default .cm-attribute { color: #dca77f !important; }
+        .cm-s-default .cm-def { color: #ffd18d !important; }
+        .cm-s-default .cm-operator { color: #ff9c70 !important; }
+        .remote-cursor-widget { border-left-color: #91d39b; }
+        .remote-cursor-tag { background: #91d39b; color: #071009; }
+        .output-tabs { background: linear-gradient(90deg, rgba(255, 116, 69, .055), transparent 60%), #100d0b; border-bottom-color: #30231d; }
+        .tab-btn { color: #968276; }
+        .tab-btn.active { color: #ff9a70; border-bottom-color: #ff8758; text-shadow: 0 0 14px rgba(255, 126, 77, .16); }
+        #terminal-output { background: #090807; color: #9bd49f; }
+        #ext-panel {
+          background: linear-gradient(160deg, rgba(255, 111, 64, .09), transparent 35%), #100d0b;
+          border-left-color: #493126; box-shadow: -18px 0 48px rgba(0,0,0,.4);
+        }
+        .ext-header { border-bottom-color: #30231d; }
+        .ext-title { color: #ff986e; }
+        .ext-item { position: relative; overflow: hidden; background: linear-gradient(145deg, rgba(255, 116, 69, .06), transparent 70%), #0b0908; border-color: #35271f; }
+        .ext-item:active, .ext-item:hover { border-color: #bd6948; background: rgba(255, 116, 69, .10); }
+        .ext-item h4 { color: #f1e5dc; }
+        .storage-meter { background: #30231d; }
+        .storage-meter-fill { background: var(--accent-gradient); box-shadow: 0 0 12px rgba(255, 112, 64, .28); }
+        .modal-overlay { background: rgba(4, 3, 3, .84); backdrop-filter: blur(9px); }
+        .modal-content {
+          background: radial-gradient(ellipse at 100% 0, rgba(255, 111, 64, .10), transparent 42%), #100d0b;
+          border: 1px solid #513729; box-shadow: 0 25px 90px rgba(0,0,0,.65), 0 0 40px rgba(255,111,64,.06);
+        }
+        .modal-header { border-bottom-color: #35271f; }
+        .modal-header h2 { color: #ff986e; }
+        .modal-body p { color: #aa9689; }
+        .input-label { color: #b49d8f; }
+        .btn {
+          border-color: #493126; background: linear-gradient(145deg, rgba(255, 119, 72, .055), transparent);
+        }
+        .btn:hover, .btn:focus-visible, .btn:active {
+          border-color: #d47750; color: #ff9b72; box-shadow: 0 0 18px rgba(255, 112, 65, .10);
+        }
+        .btn-primary {
+          color: #1c0d08; background: var(--accent-gradient); border: 0;
+          box-shadow: 0 6px 20px rgba(255, 105, 60, .19), inset 0 1px rgba(255,255,255,.28);
+        }
+        .btn-primary:hover, .btn-primary:focus-visible, .btn-primary:active {
+          color: #160905; filter: brightness(1.08); box-shadow: 0 8px 26px rgba(255, 105, 60, .28);
+        }
+        .btn-danger { background: linear-gradient(115deg, #ff5550, #c93636); color: #190605; }
+        .recent-item { border-color: #35271f; background: rgba(255, 116, 69, .035); }
+        .recent-item:active { border-color: #bd6948; color: #ff9a70; }
+        #toast-container .toast {
+          background: linear-gradient(110deg, rgba(255, 116, 69, .11), transparent 70%), #15100d;
+          border: 1px solid #493126; border-left: 3px solid #ff8758; border-radius: 2px;
+          box-shadow: 0 12px 32px rgba(0,0,0,.42);
+        }
+        #toast-container .toast.error { border-left-color: #ff5b58; }
+        #toast-container .toast.success { border-left-color: #83c98a; }
+        #call-widget {
+          background: linear-gradient(120deg, rgba(131, 201, 138, .12), transparent 65%), #100d0b;
+          border: 1px solid rgba(131, 201, 138, .58); box-shadow: 0 12px 34px rgba(0,0,0,.4);
+        }
+        #call-widget.speaking { box-shadow: 0 0 0 1px rgba(131,201,138,.2), 0 0 26px rgba(131,201,138,.20); }
+        .call-dot { box-shadow: 0 0 12px rgba(131,201,138,.55); }
+        .ext-close, .call-btn { color: #bba69a; }
+        button { cursor: pointer; }
+        button:focus-visible, select:focus-visible, input:focus-visible {
+          outline: 2px solid rgba(255, 146, 103, .7); outline-offset: 3px;
+        }
+        @media (hover: hover) {
+          .btn:not(.btn-primary):hover, .nav-btn:not(.run-btn):hover { transform: translateY(-1px); }
+        }
+        @media (max-width: 600px) {
+          #landing-view { padding: 24px 15px; }
+          .landing-hero { padding-top: 34px; margin-bottom: 38px; }
+          .landing-hero p { font-size: .88rem; }
+          .user-setup { flex-direction: column; align-items: stretch; }
+          .user-input { max-width: none; width: 100%; min-height: 44px; }
+          .cta-group { gap: 10px; }
+          .cta-group .btn { flex: 1 1 145px; }
+          nav { padding: 10px 12px; gap: 8px; }
+          .nav-actions { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+          .nav-btn { padding: 8px 9px; font-size: .62rem; letter-spacing: .5px; }
+          .editor-header, #quick-insert-bar { padding-left: 12px; padding-right: 12px; }
+          .CodeMirror { font-size: 13px !important; }
+          #toast-container { left: 12px; right: 12px; top: 12px; }
+          #toast-container .toast { min-width: 0; }
+          #call-widget { left: 12px; bottom: 12px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="boot-screen">
+        <div class="boot-text">Initializing System</div>
+        <div class="boot-loader"></div>
+    </div>
+
+    <div id="landing-view" class="view active">
+        <div class="landing-container">
+            <div class="landing-hero">
+                <h1>CODE<span>SATHEE</span></h1>
+                <p>A no-bullshit, 100% client-side collaborative code editor. Write code, sync in real-time via WebRTC, and voice chat with your peer. No servers, no accounts, no logs.</p>
+                
+                <div class="user-setup">
+                    <input type="text" id="username-input" class="user-input" placeholder="ENTER YOUR CALLSIGN" maxlength="15">
+                </div>
+
+                <div class="cta-group">
+                    <button class="btn btn-primary" id="btn-start" onclick="App.startNewProject()">START CODING ALONE</button>
+                    <button class="btn" onclick="App.openModal('modal-connect')">CONNECT P2P</button>
+                </div>
+            </div>
+
+            <div class="section-title">How The Tech Works</div>
+            <div class="tech-grid">
+                <div class="tech-card">
+                    <h3>1. Diff Sync Engine</h3>
+                    <p>Text differences are calculated and synced directly. Cursor positions are mapped to string indices to prevent teleporting during simultaneous edits.</p>
+                </div>
+                <div class="tech-card">
+                    <h3>2. WebRTC Media</h3>
+                    <p>Voice channels use raw WebRTC MediaConnections. Mic audio is streamed directly to the peer with Voice Activity Detection (VAD).</p>
+                </div>
+                <div class="tech-card">
+                    <h3>3. Local First</h3>
+                    <p>Your code is saved to localStorage. If you go offline, changes are tracked. Snapshots are persisted locally for ultimate resilience.</p>
+                </div>
+            </div>
+
+            <div class="section-title">
+                <span>Saved Projects</span>
+                <button onclick="App.panicWipe()">PURGE ALL</button>
+            </div>
+            <div class="projects-grid" id="projects-grid"></div>
+        </div>
+    </div>
+
+    <div id="editor-view" class="view">
+        <nav>
+            <button class="brand" onclick="App.goToLanding()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-orange);"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                SATHEE
+            </button>
+            <div class="nav-actions">
+                <div class="status-pill">
+                    <div class="status-dot" id="net-status"></div>
+                    <span id="net-text">OFFLINE</span>
+                </div>
+                <button class="nav-btn" id="btn-connect" onclick="App.openModal('modal-connect')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    CONNECT
+                </button>
+                <button class="nav-btn" id="btn-call" style="display:none;" onclick="P2P.startCall()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    VOICE
+                </button>
+                <button class="nav-btn run-btn" onclick="App.runCode()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    RUN
+                </button>
+                <button class="nav-btn" id="btn-save" onclick="App.saveProject(true)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    SAVE
+                </button>
+                <button class="nav-btn" id="btn-ext" onclick="App.toggleExtPanel()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    TOOLS
+                </button>
+            </div>
+        </nav>
+
+        <main>
+            <div id="split-wrapper" class="layout-vertical">
+                <div id="editor-pane">
+                    <div class="editor-header">
+                        <div class="file-info">
+                            <div class="file-dot"></div>
+                            <input type="text" id="filename" value="untitled.js" style="background:transparent; border:none; color:var(--text-white); font-family:var(--font-mono); font-size:0.8rem; outline:none; width:150px;">
+                        </div>
+                        <div class="file-info" id="save-status">SAVED LOCALLY</div>
+                        <select class="lang-select" id="lang-select" onchange="App.changeLang(true)">
+                            <option value="javascript">JavaScript</option>
+                            <option value="python">Python</option>
+                            <option value="htmlmixed">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="xml">XML</option>
+                        </select>
+                    </div>
+                    
+                    <div id="quick-insert-bar">
+                        <button class="qi-btn" onclick="App.quickInsert('()')">()</button>
+                        <button class="qi-btn" onclick="App.quickInsert('{}')">{}</button>
+                        <button class="qi-btn" onclick="App.quickInsert('[]')">[]</button>
+                        <button class="qi-btn" onclick="App.quickInsert('=>')">=&gt;</button>
+                        <button class="qi-btn" onclick="App.quickInsert('===')">===</button>
+                        <button class="qi-btn" onclick="App.quickInsert('console.log()')">log</button>
+                        <button class="qi-btn" onclick="App.quickInsert('function ')">func</button>
+                        <button class="qi-btn" onclick="App.quickInsert('return ')">ret</button>
+                        <button class="qi-btn" onclick="App.quickInsert('// TODO: ')">todo</button>
+                    </div>
+                    
+                    <textarea id="code-editor"></textarea>
+                </div>
+                
+                <div id="output-pane">
+                    <div class="output-tabs" id="output-tabs">
+                        <button class="tab-btn active" onclick="App.switchTab('preview')">PREVIEW</button>
+                        <button class="tab-btn" onclick="App.switchTab('terminal')">TERMINAL</button>
+                    </div>
+                    <iframe id="preview-frame" sandbox="allow-scripts"></iframe>
+                    <div id="terminal-output"></div>
+                </div>
+            </div>
+
+            <div id="ext-panel">
+                <div class="ext-header">
+                    <div class="ext-title">Extensions</div>
+                    <button class="ext-close" onclick="App.toggleExtPanel(false)">&times;</button>
+                </div>
+                <div class="ext-list" id="ext-list"></div>
+                <div style="padding: 15px; border-top: 1px solid var(--border-grey);">
+                    <div class="ext-title" style="margin-bottom: 10px;">Local Storage</div>
+                    <div class="storage-meter"><div class="storage-meter-fill" id="storage-fill"></div></div>
+                    <div class="storage-text" id="storage-text">0% Used</div>
+                </div>
+            </div>
+        </main>
+
+        <div id="call-widget">
+            <div class="call-dot"></div>
+            <div class="call-info">LIVE <span id="call-timer">00:00</span></div>
+            <button class="call-btn mute" id="btn-mute" onclick="P2P.toggleMute()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+            </button>
+            <button class="call-btn end" onclick="P2P.endCall()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-connect">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Establish P2P Link</h2>
+                <button class="ext-close" onclick="App.closeModal('modal-connect')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Initiate a tactical WebRTC data channel. Share your ID to receive, or input a peer ID to connect.</p>
+                <div class="input-group">
+                    <label class="input-label">Your Identification ID</label>
+                    <input type="text" id="my-peer-id" class="modal-input" readonly>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Target Peer ID</label>
+                    <input type="text" id="target-peer-id" class="modal-input" placeholder="ENTER CALLSIGN...">
+                </div>
+                <div class="recent-list" id="recent-list"></div>
+                <div class="btn-row">
+                    <button class="btn" onclick="App.closeModal('modal-connect')">Cancel</button>
+                    <button class="btn btn-primary" onclick="P2P.connect()">Link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-call">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Incoming Voice Channel</h2>
+            </div>
+            <div class="modal-body" style="text-align:center;">
+                <p>Incoming transmission request from peer.</p>
+                <div class="btn-row" style="justify-content:center;">
+                    <button class="btn btn-danger" onclick="P2P.endCall(true)">Reject</button>
+                    <button class="btn btn-primary" onclick="P2P.acceptCall()">Accept</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-save">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Save Project</h2>
+                <button class="ext-close" onclick="App.closeModal('modal-save')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label">Project Name</label>
+                    <input type="text" id="project-name" class="modal-input" placeholder="my-tactical-app.js">
+                </div>
+                <div class="btn-row">
+                    <button class="btn" onclick="App.closeModal('modal-save')">Cancel</button>
+                    <button class="btn btn-primary" onclick="App.confirmSaveProject(true)">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        const safeSetItem = (key, val) => {
+            try { localStorage.setItem(key, val); App.updateStorageMeter(); } 
+            catch (e) { Utils.toast('Local Storage Full! Purge data.', 'error'); }
+        };
+
+        const Utils = {
+            toast: (message, type = 'success') => {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerText = message;
+                container.appendChild(toast);
+                toast.style.opacity = '1';
+                setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+            }
+        };
+
+        const dmp = new diff_match_patch();
+
+        // Pyodide Web Worker Setup
+        const pyWorkerCode = `
+            importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
+            let pyodide = null;
+            self.onmessage = async (e) => {
+                if (!pyodide) pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
+                if (e.data.type === 'run') {
+                    try {
+                        let stdout = '';
+                        pyodide.setStdout({ batched: (s) => stdout += s + '\\n' });
+                        pyodide.setStderr({ batched: (s) => stdout += 'ERROR: ' + s + '\\n' });
+                        await pyodide.runPythonAsync(e.data.code);
+                        self.postMessage({ type: 'result', data: stdout });
+                    } catch (err) {
+                        self.postMessage({ type: 'result', data: 'FATAL: ' + err.message });
+                    }
+                }
+            };
+        `;
+        const pyBlob = new Blob([pyWorkerCode], { type: 'application/javascript' });
+        const pyWorker = new Worker(URL.createObjectURL(pyBlob));
+
+        const App = {
+            editor: null,
+            currentProjectId: null,
+            wakeLock: null,
+            activeTab: 'terminal',
+            snapshots: [],
+            peerBookmark: null,
+            peerCursorTimeout: null,
+            saveTimer: null,
+            previewTimer: null,
+            syncTimer: null,
+            isApplyingRemote: false,
+            lastSyncedText: '',
+            
+            init: () => {
+                setTimeout(() => {
+                    const bootScreen = document.getElementById('boot-screen');
+                    bootScreen.style.opacity = '0';
+                    setTimeout(() => { bootScreen.style.display = 'none'; }, 500);
+                }, 1000);
+
+                try {
+                    App.initEditor();
+                    App.initExtensions();
+                    App.initUsername();
+                    P2P.init();
+                    App.renderProjects();
+                    App.changeLang(false);
+                    App.renderTimeline();
+                    App.updateStorageMeter();
+                    App.bindPyWorker();
+                } catch (err) {
+                    console.error("Initialization Error:", err);
+                    Utils.toast('System initialization error: ' + err.message, 'error');
+                }
+            },
+
+            initUsername: () => {
+                const name = localStorage.getItem('codesathee_username') || 'USER-' + Math.floor(Math.random() * 9999);
+                const input = document.getElementById('username-input');
+                input.value = name;
+                input.addEventListener('input', (e) => {
+                    localStorage.setItem('codesathee_username', e.target.value);
+                    if (P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'profile', username: e.target.value });
+                });
+            },
+
+            requestWakeLock: async () => {
+                try { App.wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+            },
+
+            showView: (viewName) => {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.getElementById(`${viewName}-view`).classList.add('active');
+                if (viewName === 'editor') {
+                    if (App.editor) setTimeout(() => App.editor.refresh(), 100);
+                    App.requestWakeLock();
+                } else {
+                    if (App.wakeLock) { App.wakeLock.release().then(() => App.wakeLock = null); }
+                }
+            },
+
+            goToLanding: () => {
+                App.showView('landing');
+                App.renderProjects();
+                App.renderRecents();
+            },
+
+            startNewProject: () => {
+                App.currentProjectId = null;
+                document.getElementById('filename').value = 'untitled.js';
+                document.getElementById('lang-select').value = 'javascript';
+                App.editor.setValue('// Start coding...\n');
+                App.lastSyncedText = App.editor.getValue();
+                App.snapshots = [];
+                App.renderTimeline();
+                App.showView('editor');
+                App.changeLang(false);
+            },
+
+            initEditor: () => {
+                App.editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                    mode: 'javascript',
+                    lineNumbers: true,
+                    theme: 'default',
+                    autoCloseTags: true,
+                    autoCloseBrackets: true,
+                    matchBrackets: true,
+                    styleActiveLine: true,
+                    tabSize: 2,
+                    indentUnit: 2,
+                    indentWithTabs: false,
+                    lineWrapping: true,
+                    extraKeys: {
+                        "Tab": (cm) => {
+                            if (cm.somethingSelected()) cm.indentSelection("add");
+                            else cm.replaceSelection("  ", "end");
+                        }
+                    }
+                });
+
+                App.editor.on('change', (instance) => {
+                    if (App.isApplyingRemote) return;
+                    
+                    clearTimeout(App.saveTimer);
+                    clearTimeout(App.previewTimer);
+                    clearTimeout(App.syncTimer);
+                    
+                    document.getElementById('save-status').innerText = 'TYPING...';
+                    
+                    App.saveTimer = setTimeout(() => {
+                        safeSetItem('codesathee_active_code', instance.getValue());
+                        document.getElementById('save-status').innerText = 'SAVED LOCALLY';
+                    }, 600);
+
+                    App.previewTimer = setTimeout(() => App.updatePreview(), 400);
+
+                    App.syncTimer = setTimeout(() => {
+                        if (P2P.conn && P2P.conn.open) {
+                            const currentText = instance.getValue();
+                            const diff = dmp.diff_main(App.lastSyncedText, currentText);
+                            dmp.diff_cleanupSemantic(diff);
+                            const patches = dmp.patch_make(App.lastSyncedText, diff);
+                            const patchText = dmp.patch_toText(patches);
+                            if (patchText.length > 0) {
+                                P2P.conn.send({ t: 'patch', val: patchText });
+                                App.lastSyncedText = currentText;
+                            }
+                        }
+                    }, 300);
+                });
+
+                App.editor.on('cursorActivity', (instance) => {
+                    if (App.isApplyingRemote) return;
+                    if (P2P.conn && P2P.conn.open) {
+                        const cursor = instance.getCursor();
+                        const index = instance.indexFromPos(cursor);
+                        P2P.conn.send({ t: 'cursor', idx: index });
+                    }
+                });
+
+                const savedCode = localStorage.getItem('codesathee_active_code') || '// Start coding...\n';
+                App.editor.setValue(savedCode);
+                App.lastSyncedText = savedCode;
+            },
+
+            bindPyWorker: () => {
+                pyWorker.onmessage = (e) => {
+                    const term = document.getElementById('terminal-output');
+                    if (e.data.type === 'result') {
+                        term.innerHTML += e.data.data || '<span class="term-info">// Execution finished.</span>';
+                    }
+                };
+            },
+
+            quickInsert: (text) => {
+                if (!App.editor) return;
+                App.editor.replaceSelection(text);
+                App.editor.focus();
+                if (text.endsWith('()') || text.endsWith('[]') || text.endsWith('{}')) {
+                    const cursor = App.editor.getCursor();
+                    App.editor.setCursor({line: cursor.line, ch: cursor.ch - 1});
+                }
+            },
+
+            changeLang: (broadcast = false) => {
+                const lang = document.getElementById('lang-select').value;
+                App.editor.setOption('mode', lang);
+                let ext = 'js';
+                if (lang === 'python') ext = 'py';
+                if (lang === 'htmlmixed') ext = 'html';
+                if (lang === 'css') ext = 'css';
+                if (lang === 'xml') ext = 'xml';
+                const currentName = document.getElementById('filename').value.split('.')[0] || 'untitled';
+                document.getElementById('filename').value = `${currentName}.${ext}`;
+                
+                const wrapper = document.getElementById('split-wrapper');
+                const tabs = document.getElementById('output-tabs');
+                if (lang === 'htmlmixed' || lang === 'css') {
+                    wrapper.className = 'layout-horizontal';
+                    tabs.children[0].style.display = 'block'; tabs.children[1].style.display = 'none';
+                    App.switchTab('preview');
+                } else if (lang === 'javascript' || lang === 'python') {
+                    wrapper.className = 'layout-vertical';
+                    tabs.children[0].style.display = 'none'; tabs.children[1].style.display = 'block';
+                    App.switchTab('terminal');
+                } else {
+                    wrapper.className = 'layout-vertical';
+                    tabs.children[0].style.display = 'none'; tabs.children[1].style.display = 'none';
+                }
+
+                if (broadcast && P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'state', lang: lang, filename: document.getElementById('filename').value });
+                App.updatePreview();
+            },
+
+            updatePreview: () => {
+                const lang = document.getElementById('lang-select').value;
+                if (lang === 'htmlmixed') document.getElementById('preview-frame').srcdoc = App.editor.getValue();
+            },
+
+            switchTab: (tab) => {
+                App.activeTab = tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                const visibleBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.style.display !== 'none' && b.innerText.toLowerCase().includes(tab));
+                if (visibleBtn) visibleBtn.classList.add('active');
+                if (tab === 'preview') {
+                    document.getElementById('preview-frame').style.display = 'block';
+                    document.getElementById('terminal-output').classList.remove('active');
+                } else {
+                    document.getElementById('preview-frame').style.display = 'none';
+                    document.getElementById('terminal-output').classList.add('active');
+                }
+            },
+
+            runCode: async () => {
+                const lang = document.getElementById('lang-select').value;
+                const term = document.getElementById('terminal-output');
+                term.innerHTML = '';
+                App.switchTab('terminal');
+                term.classList.add('active');
+
+                if (lang === 'python') {
+                    term.innerHTML = '<span class="term-info">Executing in Web Worker...</span>\n';
+                    pyWorker.postMessage({ type: 'run', code: App.editor.getValue() });
+                } else if (lang === 'javascript') {
+                    const code = App.editor.getValue();
+                    const logCapture = `
+                        (function() {
+                            let logs = [];
+                            const oldLog = console.log; const oldErr = console.error;
+                            console.log = function(...args) { logs.push(args.join(' ')); oldLog.apply(console, args); };
+                            console.error = function(...args) { logs.push('ERROR: ' + args.join(' ')); oldErr.apply(console, args); };
+                            try { ${code} } catch(e) { logs.push('FATAL: ' + e.message); }
+                            console.log = oldLog; console.error = oldErr;
+                            return logs.join('\\n');
+                        })();
+                    `;
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none'; iframe.sandbox = 'allow-scripts';
+                    document.body.appendChild(iframe);
+                    iframe.onload = () => {
+                        const result = iframe.contentWindow.eval(logCapture);
+                        term.innerHTML = result || '<span class="term-info">// Execution finished.</span>';
+                        document.body.removeChild(iframe);
+                    };
+                    iframe.src = 'about:blank';
+                } else {
+                    term.innerHTML = `<span class="term-info">// Execution not supported for ${lang}.</span>`;
+                }
+            },
+
+            initExtensions: () => {
+                const extensions = [
+                    { name: 'Format Code', desc: 'Auto-beautify JS/HTML/CSS', action: () => App.extAction('format') },
+                    { name: 'Format JSON', desc: 'Beautify selected JSON', action: () => App.extAction('json') },
+                    { name: 'Insert UUID', desc: 'Generate v4 UUID', action: () => App.extAction('uuid') },
+                    { name: 'Base64 Encode', desc: 'Encode selected text', action: () => App.extAction('b64_enc') },
+                    { name: 'Base64 Decode', desc: 'Decode selected text', action: () => App.extAction('b64_dec') },
+                    { name: 'Create Snapshot', desc: 'Save local timeline point', action: () => App.createSnapshot() }
+                ];
+                const list = document.getElementById('ext-list');
+                list.innerHTML = '';
+                extensions.forEach(ext => {
+                    const div = document.createElement('div');
+                    div.className = 'ext-item';
+                    div.innerHTML = `<h4>${ext.name}</h4><p>${ext.desc}</p>`;
+                    div.onclick = ext.action;
+                    list.appendChild(div);
+                });
+            },
+
+            extAction: (type) => {
+                const text = App.editor.getSelection();
+                if (!text && !['uuid', 'format'].includes(type)) return Utils.toast('Select text first', 'error');
+                try {
+                    switch(type) {
+                        case 'format': 
+                            const lang = document.getElementById('lang-select').value;
+                            const code = App.editor.getValue();
+                            let formatted;
+                            if (lang === 'htmlmixed') formatted = html_beautify(code);
+                            else if (lang === 'css') formatted = css_beautify(code);
+                            else formatted = js_beautify(code);
+                            App.editor.setValue(formatted);
+                            break;
+                        case 'json': App.editor.replaceSelection(JSON.stringify(JSON.parse(text), null, 2)); break;
+                        case 'uuid': App.editor.replaceSelection(crypto.randomUUID()); break;
+                        case 'b64_enc': App.editor.replaceSelection(btoa(text)); break;
+                        case 'b64_dec': App.editor.replaceSelection(atob(text)); break;
+                    }
+                    Utils.toast('Action executed');
+                } catch (e) { Utils.toast('Action failed', 'error'); }
+            },
+
+            toggleExtPanel: (show = true) => {
+                const panel = document.getElementById('ext-panel');
+                panel.style.right = show ? '0px' : '-280px';
+                if (show) App.updateStorageMeter();
+            },
+
+            updateStorageMeter: () => {
+                let total = 0;
+                for (let x in localStorage) total += ((localStorage[x].length || 0) + (x.length || 0)) * 2;
+                const percentage = Math.min(100, (total / (5 * 1024 * 1024)) * 100);
+                document.getElementById('storage-fill').style.width = percentage + '%';
+                document.getElementById('storage-text').innerText = percentage.toFixed(2) + '% Used';
+            },
+
+            openModal: (id) => {
+                if (id === 'modal-connect') App.renderRecents();
+                document.getElementById(id).classList.add('active');
+            },
+            closeModal: (id) => document.getElementById(id).classList.remove('active'),
+
+            createSnapshot: () => {
+                const snap = { ts: Date.now(), code: App.editor.getValue() };
+                App.snapshots.push(snap);
+                if (App.snapshots.length > 10) App.snapshots.shift();
+                safeSetItem('codesathee_snapshots', JSON.stringify(App.snapshots));
+                App.renderTimeline();
+                Utils.toast('Snapshot Saved');
+            },
+
+            renderTimeline: () => {
+                const saved = localStorage.getItem('codesathee_snapshots');
+                if (saved) App.snapshots = JSON.parse(saved);
+                const bar = document.getElementById('timeline-bar');
+                if (!bar) return;
+                bar.innerHTML = '';
+                if (App.snapshots.length === 0) return;
+                App.snapshots.forEach((s, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'timeline-item';
+                    item.innerText = new Date(s.ts).toLocaleTimeString();
+                    item.onclick = () => {
+                        App.editor.setValue(s.code);
+                        Utils.toast('Snapshot Restored');
+                    };
+                    bar.appendChild(item);
+                });
+            },
+
+            saveProject: (notifyPeer = false) => {
+                document.getElementById('project-name').value = document.getElementById('filename').value;
+                App.openModal('modal-save');
+                App._notifyPeerOnSave = notifyPeer;
+            },
+
+            confirmSaveProject: (notifyPeer = false) => {
+                const name = document.getElementById('project-name').value;
+                if (!name) return Utils.toast('Enter a name', 'error');
+                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                const code = App.editor.getValue();
+                const lang = document.getElementById('lang-select').value;
+                if (App.currentProjectId) {
+                    const idx = projects.findIndex(p => p.id === App.currentProjectId);
+                    if (idx > -1) { projects[idx].name = name; projects[idx].code = code; projects[idx].lang = lang; }
+                } else {
+                    const newProj = { id: Date.now().toString(), name, code, lang };
+                    projects.push(newProj);
+                    App.currentProjectId = newProj.id;
+                }
+                safeSetItem('codesathee_projects', JSON.stringify(projects));
+                App.closeModal('modal-save');
+                Utils.toast('Project Saved');
+                document.getElementById('filename').value = name;
+                
+                // Sync Save State
+                if (notifyPeer && P2P.conn && P2P.conn.open) {
+                    P2P.conn.send({ t: 'sync_save', id: App.currentProjectId, name: name, lang: lang, code: code });
+                }
+            },
+
+            renderProjects: () => {
+                const projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                const grid = document.getElementById('projects-grid');
+                grid.innerHTML = '';
+                if (projects.length === 0) {
+                    grid.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No saved projects. Start coding alone to save one.</p>';
+                    return;
+                }
+                projects.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'project-card';
+                    card.innerHTML = `<div class="project-info"><h4>${p.name}</h4><p>${p.lang}</p></div><button class="project-delete" onclick="App.deleteProject('${p.id}', event)">&times;</button>`;
+                    card.onclick = () => App.loadProject(p.id);
+                    grid.appendChild(card);
+                });
+            },
+
+            loadProject: (id) => {
+                const projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                const proj = projects.find(p => p.id === id);
+                if (!proj) return;
+                App.currentProjectId = proj.id;
+                document.getElementById('filename').value = proj.name;
+                document.getElementById('lang-select').value = proj.lang;
+                App.editor.setOption('mode', proj.lang);
+                App.editor.setValue(proj.code);
+                App.lastSyncedText = proj.code;
+                App.showView('editor');
+                App.changeLang(false);
+            },
+
+            deleteProject: (id, e) => {
+                e.stopPropagation();
+                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                const proj = projects.find(p => p.id === id);
+                projects = projects.filter(p => p.id !== id);
+                safeSetItem('codesathee_projects', JSON.stringify(projects));
+                App.renderProjects();
+                Utils.toast('Project Deleted', 'error');
+                if (proj && P2P.conn && P2P.conn.open) P2P.conn.send({ t: 'sys_event', action: 'delete', name: proj.name });
+            },
+
+            renderRecents: () => {
+                const recents = JSON.parse(localStorage.getItem('codesathee_recents') || '[]');
+                const list = document.getElementById('recent-list');
+                list.innerHTML = '';
+                recents.forEach(id => {
+                    const div = document.createElement('div');
+                    div.className = 'recent-item';
+                    div.innerHTML = `<span>${id}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+                    div.onclick = () => { document.getElementById('target-peer-id').value = id; };
+                    list.appendChild(div);
+                });
+            },
+
+            addRecent: (id) => {
+                if (!id) return;
+                let recents = JSON.parse(localStorage.getItem('codesathee_recents') || '[]');
+                recents = recents.filter(r => r !== id);
+                recents.unshift(id);
+                if (recents.length > 5) recents = recents.slice(0, 5);
+                safeSetItem('codesathee_recents', JSON.stringify(recents));
+            },
+
+            panicWipe: () => {
+                localStorage.clear();
+                Utils.toast('Local Data Purged', 'error');
+                setTimeout(() => location.reload(), 1000);
+            },
+
+            applyState: (lang, filename) => {
+                if (lang) {
+                    document.getElementById('lang-select').value = lang;
+                    App.editor.setOption('mode', lang);
+                    App.changeLang(false);
+                }
+                if (filename) document.getElementById('filename').value = filename;
+                App.updatePreview();
+            },
+
+            applyRemotePatch: (patchText) => {
+                if (!App.editor) return;
+                App.isApplyingRemote = true;
+                
+                const currentText = App.editor.getValue();
+                const patches = dmp.patch_fromText(patchText);
+                const [newText, results] = dmp.patch_apply(patches, currentText);
+                
+                // Only apply if patches were successful
+                let changed = false;
+                for(let i=0; i<results.length; i++) {
+                    if(results[i]) changed = true;
+                }
+
+                if (changed) {
+                    const cursor = App.editor.getCursor();
+                    const currentSelection = App.editor.getSelection();
+                    
+                    // Find common prefix/suffix to preserve cursor exactly
+                    let start = 0;
+                    while (start < currentText.length && start < newText.length && currentText[start] === newText[start]) start++;
+                    let endOld = currentText.length - 1;
+                    let endNew = newText.length - 1;
+                    while (endOld >= start && endNew >= start && currentText[endOld] === newText[endNew]) {
+                        endOld--;
+                        endNew--;
+                    }
+                    
+                    const replaceStr = newText.substring(start, endNew + 1);
+                    const startPos = App.editor.posFromIndex(start);
+                    const endPos = App.editor.posFromIndex(endOld + 1);
+                    
+                    App.editor.replaceRange(replaceStr, startPos, endPos);
+                    App.lastSyncedText = App.editor.getValue();
+                    App.editor.setCursor(cursor);
+                }
+                
+                App.isApplyingRemote = false;
+                App.updatePreview();
+            },
+
+            applyRemoteSave: (data) => {
+                App.currentProjectId = data.id;
+                document.getElementById('filename').value = data.name;
+                document.getElementById('lang-select').value = data.lang;
+                App.editor.setOption('mode', data.lang);
+                App.editor.setValue(data.code);
+                App.lastSyncedText = data.code;
+                
+                let projects = JSON.parse(localStorage.getItem('codesathee_projects') || '[]');
+                const idx = projects.findIndex(p => p.id === data.id);
+                if (idx > -1) { 
+                    projects[idx].name = data.name; 
+                    projects[idx].code = data.code; 
+                    projects[idx].lang = data.lang; 
+                } else {
+                    projects.push({ id: data.id, name: data.name, code: data.code, lang: data.lang });
+                }
+                safeSetItem('codesathee_projects', JSON.stringify(projects));
+                App.changeLang(false);
+                Utils.toast(`Peer saved project: ${data.name}`, 'success');
+            },
+
+            updatePeerCursor: (index, name) => {
+                if (!App.editor) return;
+                if (index !== undefined) {
+                    if (App.peerBookmark) App.peerBookmark.clear();
+                    const pos = App.editor.posFromIndex(index);
+                    const cursorEl = document.createElement('span');
+                    cursorEl.className = 'remote-cursor-widget';
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'remote-cursor-tag';
+                    tagEl.innerText = name ? name.toUpperCase() : 'PEER';
+                    tagEl.style.display = 'block';
+                    cursorEl.appendChild(tagEl);
+                    clearTimeout(App.peerCursorTimeout);
+                    App.peerCursorTimeout = setTimeout(() => tagEl.style.display = 'none', 2000);
+                    try {
+                        App.peerBookmark = App.editor.setBookmark(pos, { widget: cursorEl, handleMouseEvents: false });
+                    } catch(e) {}
+                }
+            }
+        };
+
+        const P2P = {
+            peer: null, conn: null, call: null, localStream: null, myId: null, callTimer: null, callSeconds: 0,
+            audioCtx: null, analyser: null, audioLoop: null, isMuted: false, heartbeatInterval: null, lastPongTime: 0,
+
+            init: () => {
+                if (!window.Peer) return Utils.toast("WebRTC Engine failed to load.", "error");
+                P2P.myId = localStorage.getItem('codesathee_peer_id');
+                if (!P2P.myId) {
+                    P2P.myId = 'CS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+                    safeSetItem('codesathee_peer_id', P2P.myId);
+                }
+                document.getElementById('my-peer-id').value = P2P.myId;
+                P2P.peer = new Peer(P2P.myId, { debug: 1 });
+
+                P2P.peer.on('open', () => {
+                    document.getElementById('net-status').classList.add('online');
+                    document.getElementById('net-text').innerText = 'ONLINE';
+                });
+                P2P.peer.on('connection', (dc) => { P2P.conn = dc; P2P.wireConnection(); });
+                P2P.peer.on('call', (incomingCall) => { P2P.call = incomingCall; App.openModal('modal-call'); });
+                P2P.peer.on('error', (err) => { 
+                    Utils.toast('P2P Error: ' + err.type, 'error'); 
+                    P2P.handleDisconnect();
+                });
+            },
+
+            connect: () => {
+                const targetId = document.getElementById('target-peer-id').value.trim();
+                if (!targetId || !P2P.peer) return;
+                document.getElementById('net-status').classList.add('connecting');
+                document.getElementById('net-text').innerText = 'LINKING...';
+                P2P.conn = P2P.peer.connect(targetId, { reliable: true });
+                P2P.wireConnection();
+            },
+
+            wireConnection: () => {
+                P2P.conn.on('open', () => {
+                    App.closeModal('modal-connect');
+                    document.getElementById('net-status').classList.remove('connecting');
+                    document.getElementById('net-status').classList.add('online');
+                    document.getElementById('net-text').innerText = 'CONNECTED';
+                    document.getElementById('btn-call').style.display = 'flex';
+                    const startBtn = document.getElementById('btn-start');
+                    if (startBtn) startBtn.innerText = "LET'S START CODING TOGETHER";
+                    Utils.toast('Peer Linked', 'success');
+                    App.addRecent(P2P.conn.peer);
+                    const username = localStorage.getItem('codesathee_username') || 'PEER';
+                    P2P.conn.send({ t: 'profile', username: username });
+                    P2P.conn.send({ t: 'state', lang: document.getElementById('lang-select').value, filename: document.getElementById('filename').value });
+                    P2P.conn.send({ t: 'patch', val: dmp.patch_toText(dmp.patch_make('', App.editor.getValue())) });
+                    
+                    // Start Heartbeat
+                    P2P.lastPongTime = Date.now();
+                    P2P.heartbeatInterval = setInterval(() => {
+                        if (!P2P.conn || !P2P.conn.open) return;
+                        P2P.conn.send({ t: 'ping' });
+                        if (Date.now() - P2P.lastPongTime > 6000) {
+                            P2P.handleDisconnect();
+                        }
+                    }, 3000);
+                });
+
+                P2P.conn.on('data', P2P.handleData);
+                P2P.conn.on('close', () => P2P.handleDisconnect());
+                P2P.conn.on('error', () => P2P.handleDisconnect());
+            },
+
+            handleDisconnect: () => {
+                if (P2P.heartbeatInterval) clearInterval(P2P.heartbeatInterval);
+                document.getElementById('net-status').classList.remove('online', 'connecting');
+                document.getElementById('net-text').innerText = 'DISCONNECTED';
+                document.getElementById('btn-call').style.display = 'none';
+                const startBtn = document.getElementById('btn-start');
+                if (startBtn) startBtn.innerText = 'START CODING ALONE';
+                if (App.peerBookmark) { App.peerBookmark.clear(); App.peerBookmark = null; }
+                if (P2P.conn) P2P.conn.close();
+                P2P.endCall();
+                Utils.toast('Peer Disconnected', 'error');
+            },
+
+            handleData: (d) => {
+                if (d.t === 'ping') P2P.conn.send({ t: 'pong' });
+                else if (d.t === 'pong') P2P.lastPongTime = Date.now();
+                else if (d.t === 'profile') App.updatePeerCursor(undefined, d.username);
+                else if (d.t === 'patch') App.applyRemotePatch(d.val);
+                else if (d.t === 'state') App.applyState(d.lang, d.filename);
+                else if (d.t === 'cursor') App.updatePeerCursor(d.idx, null);
+                else if (d.t === 'sync_save') App.applyRemoteSave(d);
+                else if (d.t === 'sys_event') {
+                    if (d.action === 'delete') Utils.toast(`Peer deleted ${d.name}`, 'error');
+                }
+            },
+
+            startCall: () => {
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                    .then((stream) => {
+                        P2P.localStream = stream;
+                        P2P.isMuted = false;
+                        P2P.call = P2P.peer.call(P2P.conn.peer, stream);
+                        P2P.call.on('stream', (remoteStream) => {
+                            const audio = new Audio(); audio.srcObject = remoteStream; audio.play();
+                            P2P.setupVAD(remoteStream);
+                            P2P.startTimer(); document.getElementById('call-widget').style.display = 'flex';
+                        });
+                        P2P.call.on('close', P2P.endCall);
+                    }).catch(() => Utils.toast('Mic Access Denied', 'error'));
+            },
+
+            acceptCall: () => {
+                App.closeModal('modal-call');
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                    .then((stream) => {
+                        P2P.localStream = stream;
+                        P2P.isMuted = false;
+                        P2P.call.answer(stream);
+                        P2P.call.on('stream', (remoteStream) => {
+                            const audio = new Audio(); audio.srcObject = remoteStream; audio.play();
+                            P2P.setupVAD(remoteStream);
+                            P2P.startTimer(); document.getElementById('call-widget').style.display = 'flex';
+                        });
+                        P2P.call.on('close', P2P.endCall);
+                    }).catch(() => Utils.toast('Mic Access Denied', 'error'));
+            },
+
+            toggleMute: () => {
+                if (!P2P.localStream) return;
+                P2P.isMuted = !P2P.isMuted;
+                P2P.localStream.getAudioTracks().forEach(track => track.enabled = !P2P.isMuted);
+                const btn = document.getElementById('btn-mute');
+                btn.style.color = P2P.isMuted ? 'var(--danger-red)' : 'var(--text-muted)';
+            },
+
+            setupVAD: (stream) => {
+                try {
+                    P2P.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = P2P.audioCtx.createMediaStreamSource(stream);
+                    P2P.analyser = P2P.audioCtx.createAnalyser();
+                    P2P.analyser.fftSize = 256;
+                    source.connect(P2P.analyser);
+                    const data = new Uint8Array(P2P.analyser.frequencyBinCount);
+                    P2P.audioLoop = setInterval(() => {
+                        P2P.analyser.getByteFrequencyData(data);
+                        const avg = data.reduce((a, b) => a + b) / data.length;
+                        if (avg > 20 && !P2P.isMuted) document.getElementById('call-widget').classList.add('speaking');
+                        else document.getElementById('call-widget').classList.remove('speaking');
+                    }, 100);
+                } catch(e) { console.error("VAD Error", e); }
+            },
+
+            endCall: (rejected = false) => {
+                App.closeModal('modal-call');
+                document.getElementById('call-widget').style.display = 'none';
+                document.getElementById('call-widget').classList.remove('speaking');
+                if (P2P.callTimer) clearInterval(P2P.callTimer);
+                if (P2P.audioLoop) clearInterval(P2P.audioLoop);
+                if (P2P.audioCtx) { P2P.audioCtx.close(); P2P.audioCtx = null; }
+                P2P.callSeconds = 0;
+                if (P2P.localStream) { P2P.localStream.getTracks().forEach(t => t.stop()); P2P.localStream = null; }
+                if (P2P.call) { P2P.call.close(); P2P.call = null; }
+                if (rejected) Utils.toast('Call Rejected', 'error');
+            },
+
+            startTimer: () => {
+                P2P.callTimer = setInterval(() => {
+                    P2P.callSeconds++;
+                    const m = String(Math.floor(P2P.callSeconds / 60)).padStart(2, '0');
+                    const s = String(P2P.callSeconds % 60).padStart(2, '0');
+                    document.getElementById('call-timer').innerText = `${m}:${s}`;
+                }, 1000);
+            }
+        };
+
+        App.init();
+    </script>
+</body>
+</html>
